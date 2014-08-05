@@ -16,9 +16,9 @@ psql -f TABLES/messages.sql
 psql -f FUNCTIONS/encrypt_sign_message.sql
 psql -f FUNCTIONS/decrypt_verify_message.sql
 
-psql -f TESTBANK001.asc
-psql -f TESTBANK002.asc
-psql -f TESTBANK003.asc
+psql -f TESTBANK001.sql
+psql -f TESTBANK002.sql
+psql -f TESTBANK003.sql
 
 ENCRYPTED_MESSAGE=$(psql -P format=unaligned -t -c "SELECT Encrypt_Sign_Message('TESTBANK001','TESTBANK002','Hello world')")
 
