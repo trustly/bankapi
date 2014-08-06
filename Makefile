@@ -9,8 +9,16 @@ clean:
 	$(MAKE_POSTGRES) clean
 
 .PHONY: deb
-deb:
-	$(MAKE_BANKAPI) build binary clean
-	$(MAKE_BANKAPI) clean
+deb: bankapi pgcrypto
+
+
+.PHONY: pgcrypto
+pgcrypto:
 	$(MAKE_POSTGRES) build binary
 	$(MAKE_POSTGRES) clean
+
+
+.PHONY: bankapi
+bankapi:
+	$(MAKE_BANKAPI) build binary clean
+	$(MAKE_BANKAPI) clean
