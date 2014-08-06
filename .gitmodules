@@ -1,0 +1,3 @@
+[submodule "postgres"]
+	path = postgres
+	url = https://github.com/johto/postgres.git
