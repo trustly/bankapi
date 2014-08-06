@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ] ; then
+	if [ ! -e "/etc/apache2/sites-enabled/010-bankapi.conf" ]; then
+		ln -s "/etc/apache2/sites-available/010-bankapi.conf" "/etc/apache2/sites-enabled/010-bankapi.conf"
+		service apache2 reload
+	fi
+fi

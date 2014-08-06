@@ -1,0 +1,45 @@
+#!/usr/bin/make -f
+
+VERSION=0.1-1
+PACKAGE=bankd
+ROOT=$(PWD)
+PACKAGEDIR=$(ROOT)/$(PACKAGE)-$(VERSION)
+
+build:
+	if [ -e "$(PACKAGEDIR)" ]; then \
+		echo "$(PACKAGEDIR) exists, clean first"; \
+	fi
+	mkdir -p "$(PACKAGEDIR)" \
+		"$(PACKAGEDIR)/usr/share/bankd" \
+		"$(PACKAGEDIR)/etc/apache2/sites-available" \
+		"$(PACKAGEDIR)/var/www/bankapi" \
+		"$(PACKAGEDIR)/DEBIAN"
+
+install:
+
+binary: binary-indep binary-arch
+	echo "Version: $(VERSION)" > "$(PACKAGEDIR)/DEBIAN/control"
+	cat "$(ROOT)/debian/control" >> "$(PACKAGEDIR)/DEBIAN/control"
+	dpkg-deb -b "$(PACKAGEDIR)"
+
+# Build architecture - dependent files here .
+binary-arch:
+	/bin/true
+
+# Build architecture - independent files here 
+binary-indep:
+	for file in "$(ROOT)"/TABLES/*.sql "$(ROOT)"/FUNCTIONS/*.sql; do \
+		cat $$file >> "$(PACKAGEDIR)/usr/share/bankd/install.sql"; \
+	done
+	for file in "$(ROOT)"/TESTBANK*.asc; do \
+		cat $$file >> "$(PACKAGEDIR)/usr/share/bankd/testdata.sql"; \
+	done
+	cp "$(ROOT)/etc/apache2/sites-available/010-bankapi.conf" "$(PACKAGEDIR)/etc/apache2/sites-available/010-bankapi.conf"
+	cp "$(ROOT)/cgi/api.py" "$(PACKAGEDIR)/var/www/bankapi/api.py"
+	cp "$(ROOT)/debian/postinst" "$(PACKAGEDIR)/postinst"
+	cp "$(ROOT)/debian/postrm" "$(PACKAGEDIR)/postrm"
+
+clean:
+	rm -rf "$(PACKAGEDIR)"
+
+.PHONY: build binary binary-arch binary-indep clean install configure
