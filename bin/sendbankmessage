@@ -43,7 +43,7 @@ try:
 except getopt.GetoptError as e:
     bail()
     
-if len(argv) < 2:
+if len(args) < 2:
     bail()
 
 from_bank = args[0]
