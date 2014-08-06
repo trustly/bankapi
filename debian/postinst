@@ -1,9 +1,24 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
-if [ "$1" = "configure" ] ; then
-	if [ ! -e "/etc/apache2/sites-enabled/010-bankapi.conf" ]; then
-		ln -s "/etc/apache2/sites-available/010-bankapi.conf" "/etc/apache2/sites-enabled/010-bankapi.conf"
-		service apache2 reload
-	fi
-fi
+
+case "$1" in
+	reconfigure)
+		rm -f "/etc/apache2/sites-enabled/010-bankapi.conf"
+		;;&
+	configure|reconfigure)
+		if [ ! -e "/etc/apache2/sites-enabled/010-bankapi.conf" ]; then
+			ln -s "../sites-available/010-bankapi.conf" "/etc/apache2/sites-enabled/010-bankapi.conf"
+			a2enmod cgi
+			service apache2 restart
+		fi
+		;;
+	abort-upgrade|abort-remove|abort-deconfigure)
+		# We don't have to do anything because we didn't do anything in prerm
+		exit 0
+		;;
+	*)
+		echo "postinst called with unknown argument \`$1'" >&2
+		exit 1
+		;;
+esac

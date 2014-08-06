@@ -3,6 +3,6 @@ Priority: extra
 Maintainer: Per Lejontand <per.lejontand@trustly.com>
 Homepage: https://github.com/trustly/bankapi
 Package: bankd
-Architecture: any
-Depends: postgresql-9.3 (>= 9.3), postgresql-client (>= 9.3), postgresql-contrib (>= 9.3)
+Architecture: all
+Depends: postgresql-9.3 (>= 9.3), postgresql-client (>= 9.3), postgresql-contrib (>= 9.3), apache2 (>= 2.4.0)
 Description: Web API and database setup scripts for the bankd backend.
