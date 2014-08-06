@@ -19,11 +19,11 @@ messagehub = "http://localhost"
 def bail(error=None):
 
     if error is not None:
-        print "Error: %s" % (error)
+        print "Error: %s" % (error.rstrip())
     else:
-        print "Usage: %s [-m messagehub] [-d dbname] FROMBANK TOBANK [TOBANK..]" % (sys.argv[0])
+        print "Usage: %s [-m messagehub] [-d dbname] FROMBANK TOBANK filename [ filename ... ]" % (sys.argv[0])
         print ""
-        print "Message to be sent is read from stdin."
+        print "To read a message from stdin, you can use - as the filename"
         print ""
         print "    -m messagehub Protocol and hostname of host acting as messagehub"
         print "                  (default: http://localhost)"
@@ -43,27 +43,39 @@ try:
 except getopt.GetoptError as e:
     bail()
     
-if len(args) < 2:
+if len(args) < 3:
     bail()
 
 from_bank = args[0]
-to_banks = args[1:]
+to_bank = args[1]
+msg_filenames = args[2:]
 
 try:
     pg_conn = psycopg2.connect(pg_connect_str)
 except psycopg2.OperationalError as e:
-    bail(error='Failed to connect to database')
+    bail(error='Failed to connect to database: %s' % (e))
 
-messagetext = None
-try:
-    messagetext = sys.stdin.read()
-except Exception as e:
-    bail(error='Failed to read message text from stdin')
+for filename in msg_filenames:
+    fh = None
+    if filename == '-':
+        fh = sys.stdin
+        filename = '<stdin>'
+    else:
+        try:
+            fh = open(filename, 'r')
+            print fh
+        except IOError as e:
+            bail(error='Could not open file %s: %s' % (filename, e))
 
-if messagetext is None or len(messagetext) == 0:
-    bail(error='No message text supplied')
+    messagetext = None
+    try:
+        messagetext = fh.read()
+    except IOError as e:
+        bail(error='Failed to read from file %s: %s' % (filename, e))
 
-for to_bank in to_banks:
+    if messagetext is None or len(messagetext) == 0:
+        bail(error='No message text in file %s' % (filename))
+
     print "Sending message %s -> %s" % (from_bank, to_bank)
     cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     messageid = None
