@@ -78,17 +78,12 @@ if indata is not None:
 
     cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    if method in ('encrypt_sign_message', 'decrypt_verify_message'):
+    if method == 'receive_message':
         sqldata = None
         try:
-            if method == 'encrypt_sign_message':
-                verify_params(params, ['frombankid', 'tobankid', 'message'])
-                cur.execute('SELECT encryptedsignedmessage FROM encrypt_sign_message(%s, %s, %s)',
-                        [params['frombankid'], params['tobankid'], params['message']])
-            elif method == 'decrypt_verify_message':
-                verify_params(params, ['message'])
-                cur.execute('SELECT frombankid, tobankid, message FROM decrypt_verify_message(%s)',
-                        [params['message']])
+            verify_params(params, ['ciphertext'])
+            cur.execute('SELECT deliveryreceipt FROM receive_message(%s)',
+                    [params['ciphertext']])
 
             sqldata = cur.fetchone()
             pg_conn.commit()
