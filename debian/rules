@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 VERSION=0.1-1
-PACKAGE=bankd
+PACKAGE=bankapi
 ROOT=$(PWD)
 PACKAGEDIR=$(ROOT)/$(PACKAGE)-$(VERSION)
 CP=cp -p
@@ -11,7 +11,7 @@ build:
 		echo "$(PACKAGEDIR) exists, clean first"; \
 	fi
 	mkdir -p "$(PACKAGEDIR)" \
-		"$(PACKAGEDIR)/usr/share/bankd" \
+		"$(PACKAGEDIR)/usr/share/bankapi" \
 		"$(PACKAGEDIR)/etc/apache2/sites-available" \
 		"$(PACKAGEDIR)/var/www/bankapi" \
 		"$(PACKAGEDIR)/DEBIAN"
@@ -30,10 +30,10 @@ binary-arch:
 # Build architecture - independent files here 
 binary-indep:
 	for file in "$(ROOT)"/TABLES/*.sql "$(ROOT)"/FUNCTIONS/*.sql; do \
-		cat $$file >> "$(PACKAGEDIR)/usr/share/bankd/install.sql"; \
+		cat $$file >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"; \
 	done
 	for file in "$(ROOT)"/TESTBANK*.asc; do \
-		cat $$file >> "$(PACKAGEDIR)/usr/share/bankd/testdata.sql"; \
+		cat $$file >> "$(PACKAGEDIR)/usr/share/bankapi/testdata.sql"; \
 	done
 	$(CP) "$(ROOT)/etc/apache2/sites-available/010-bankapi.conf" "$(PACKAGEDIR)/etc/apache2/sites-available/010-bankapi.conf"
 	$(CP) "$(ROOT)/cgi/api.py" "$(PACKAGEDIR)/var/www/bankapi/api.py"
