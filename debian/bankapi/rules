@@ -20,7 +20,7 @@ install:
 
 binary: binary-indep binary-arch
 	echo "Version: $(VERSION)" > "$(PACKAGEDIR)/DEBIAN/control"
-	cat "$(ROOT)/debian/control" >> "$(PACKAGEDIR)/DEBIAN/control"
+	cat "$(ROOT)/debian/bankapi/control" >> "$(PACKAGEDIR)/DEBIAN/control"
 	dpkg-deb -b "$(PACKAGEDIR)"
 
 # Build architecture - dependent files here .
@@ -37,8 +37,8 @@ binary-indep:
 	done
 	$(CP) "$(ROOT)/etc/apache2/sites-available/010-bankapi.conf" "$(PACKAGEDIR)/etc/apache2/sites-available/010-bankapi.conf"
 	$(CP) "$(ROOT)/cgi/api.py" "$(PACKAGEDIR)/var/www/bankapi/api.py"
-	$(CP) "$(ROOT)/debian/postinst" "$(PACKAGEDIR)/DEBIAN/postinst"
-	$(CP) "$(ROOT)/debian/postrm" "$(PACKAGEDIR)/DEBIAN/postrm"
+	$(CP) "$(ROOT)/debian/bankapi/postinst" "$(PACKAGEDIR)/DEBIAN/postinst"
+	$(CP) "$(ROOT)/debian/bankapi/postrm" "$(PACKAGEDIR)/DEBIAN/postrm"
 
 clean:
 	rm -rf "$(PACKAGEDIR)"

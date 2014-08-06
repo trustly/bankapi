@@ -1,7 +1,7 @@
 all: deb
 
 clean:
-	$(MAKE) -f debian/rules clean
+	$(MAKE) -f debian/bankapi/rules clean
 
 deb:
-	$(MAKE) -f debian/rules build binary clean
+	$(MAKE) -f debian/bankapi/rules build binary clean
