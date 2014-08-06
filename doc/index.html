@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head><title>Call graphs</title></head>
+<table border="1" style="border: 1px solid gray; border-collapse: collapse">
+<tr>
+<td rowspan=6 valign="top"><a href="t3225050.svg"><img width="500" height="320" src="t3225050.svg" /></a></td>
+<td colspan=5><font size="+2">receive_message </font></td></tr>
+<tr><td>2 calls</td><td>140.57 ms total</td><td>70.28 ms average</td>
+<td>First call<br />2014-08-06 20:44:38</td><td>Last call<br />2014-08-06 20:44:38</td></tr>
+<tr><td colspan=6>No calls today</td></tr><tr><td colspan=6>No calls in the current hour</td></tr><tr><td colspan=6>No calls in the previous hour</td></tr><tr><td colspan=5><table border=1 style="border: 1px solid lightgray; border-collapse: collapse">
+<tr><th>read-write tables</th><th>seq_scan</th><th>seq_tup_read</th><th>idx_scan</th><th>idx_tup_read</th>
+<th>n_tup_ins</th><th>n_tup_upd</th><th>n_tup_del</th></tr>
+<tr><td><a href="tableusage/r3225032.svg">messages</a></td><td>0</td><td>0</td>
+<td>3</td><td>1.00</td>
+<td>0</td><td>1</td><td>0</td></tr>
+<tr><th>read-only tables</th><th>seq_scan</th><th>seq_tup_read</th><th>idx_scan</th><th>idx_tup_read</th>
+<th>n_tup_ins</th><th>n_tup_upd</th><th>n_tup_del</th></tr>
+<tr><td><a href="tableusage/r3225005.svg">keys</a></td><td>4</td><td>2.00</td>
+<td>8</td><td>1.00</td>
+<td>0</td><td>0</td><td>0</td></tr>
+<tr><td><a href="tableusage/r3225023.svg">files</a></td><td>0</td><td>0</td>
+<td>2</td><td>1.00</td>
+<td>0</td><td>0</td><td>0</td></tr>
+</table><br /><a href="tableusage/tlf3225050.svg">View table information</a></td></tr>
+</tr>
+<tr>
+<td rowspan=6 valign="top"><a href="t3225051.svg"><img width="500" height="320" src="t3225051.svg" /></a></td>
+<td colspan=5><font size="+2">read_message </font></td></tr>
+<tr><td>1 calls</td><td>60.34 ms total</td><td>60.34 ms average</td>
+<td>First call<br />2014-08-06 20:44:38</td><td>Last call<br />2014-08-06 20:44:38</td></tr>
+<tr><td colspan=6>No calls today</td></tr><tr><td colspan=6>No calls in the current hour</td></tr><tr><td colspan=6>No calls in the previous hour</td></tr><tr><td colspan=5><table border=1 style="border: 1px solid lightgray; border-collapse: collapse">
+<tr><th>read-only tables</th><th>seq_scan</th><th>seq_tup_read</th><th>idx_scan</th><th>idx_tup_read</th>
+<th>n_tup_ins</th><th>n_tup_upd</th><th>n_tup_del</th></tr>
+<tr><td><a href="tableusage/r3225005.svg">keys</a></td><td>1</td><td>2.00</td>
+<td>3</td><td>1.00</td>
+<td>0</td><td>0</td><td>0</td></tr>
+<tr><td><a href="tableusage/r3225032.svg">messages</a></td><td>0</td><td>0</td>
+<td>1</td><td>1.00</td>
+<td>0</td><td>0</td><td>0</td></tr>
+</table><br /><a href="tableusage/tlf3225051.svg">View table information</a></td></tr>
+</tr>
+<tr>
+<td rowspan=6 valign="top"><a href="t3225052.svg"><img width="500" height="320" src="t3225052.svg" /></a></td>
+<td colspan=5><font size="+2">decode_delivery_receipt </font></td></tr>
+<tr><td>1 calls</td><td>57.71 ms total</td><td>57.71 ms average</td>
+<td>First call<br />2014-08-06 20:44:38</td><td>Last call<br />2014-08-06 20:44:38</td></tr>
+<tr><td colspan=6>No calls today</td></tr><tr><td colspan=6>No calls in the current hour</td></tr><tr><td colspan=6>No calls in the previous hour</td></tr><tr><td colspan=5><table border=1 style="border: 1px solid lightgray; border-collapse: collapse">
+<tr><th>read-write tables</th><th>seq_scan</th><th>seq_tup_read</th><th>idx_scan</th><th>idx_tup_read</th>
+<th>n_tup_ins</th><th>n_tup_upd</th><th>n_tup_del</th></tr>
+<tr><td><a href="tableusage/r3225032.svg">messages</a></td><td>1</td><td>1.00</td>
+<td>0</td><td>0</td>
+<td>0</td><td>1</td><td>0</td></tr>
+<tr><th>read-only tables</th><th>seq_scan</th><th>seq_tup_read</th><th>idx_scan</th><th>idx_tup_read</th>
+<th>n_tup_ins</th><th>n_tup_upd</th><th>n_tup_del</th></tr>
+<tr><td><a href="tableusage/r3225005.svg">keys</a></td><td>1</td><td>2.00</td>
+<td>3</td><td>1.00</td>
+<td>0</td><td>0</td><td>0</td></tr>
+<tr><td><a href="tableusage/r3225023.svg">files</a></td><td>0</td><td>0</td>
+<td>1</td><td>1.00</td>
+<td>0</td><td>0</td><td>0</td></tr>
+</table><br /><a href="tableusage/tlf3225052.svg">View table information</a></td></tr>
+</tr>
+<tr>
+<td rowspan=6 valign="top"><a href="t3225048.svg"><img width="500" height="320" src="t3225048.svg" /></a></td>
+<td colspan=5><font size="+2">create_message </font></td></tr>
+<tr><td>7 calls</td><td>24.37 ms total</td><td>3.48 ms average</td>
+<td>First call<br />2014-08-06 20:44:38</td><td>Last call<br />2014-08-06 20:44:38</td></tr>
+<tr><td colspan=6>No calls today</td></tr><tr><td colspan=6>No calls in the current hour</td></tr><tr><td colspan=6>No calls in the previous hour</td></tr><tr><td colspan=5><table border=1 style="border: 1px solid lightgray; border-collapse: collapse">
+<tr><th>read-write tables</th><th>seq_scan</th><th>seq_tup_read</th><th>idx_scan</th><th>idx_tup_read</th>
+<th>n_tup_ins</th><th>n_tup_upd</th><th>n_tup_del</th></tr>
+<tr><td><a href="tableusage/r3225023.svg">files</a></td><td>0</td><td>0</td>
+<td>8</td><td>0.88</td>
+<td>1</td><td>0</td><td>0</td></tr>
+<tr><td><a href="tableusage/r3225032.svg">messages</a></td><td>7</td><td>0.86</td>
+<td>0</td><td>0</td>
+<td>1</td><td>0</td><td>0</td></tr>
+<tr><th>read-only tables</th><th>seq_scan</th><th>seq_tup_read</th><th>idx_scan</th><th>idx_tup_read</th>
+<th>n_tup_ins</th><th>n_tup_upd</th><th>n_tup_del</th></tr>
+<tr><td><a href="tableusage/r3225005.svg">keys</a></td><td>0</td><td>0</td>
+<td>4</td><td>1.00</td>
+<td>0</td><td>0</td><td>0</td></tr>
+</table><br /><a href="tableusage/tlf3225048.svg">View table information</a></td></tr>
+</tr>
+<tr>
+<td rowspan=6 valign="top"><a href="t3225047.svg"><img width="500" height="320" src="t3225047.svg" /></a></td>
+<td colspan=5><font size="+2">decrypt_verify </font></td></tr>
+<tr><td>2 calls</td><td>128.75 ms total</td><td>64.38 ms average</td>
+<td>First call<br />2014-08-06 20:44:38</td><td>Last call<br />2014-08-06 20:44:38</td></tr>
+<tr><td colspan=6>No calls today</td></tr><tr><td colspan=6>No calls in the current hour</td></tr><tr><td colspan=6>No calls in the previous hour</td></tr><tr><td colspan=5><table border=1 style="border: 1px solid lightgray; border-collapse: collapse">
+<tr><th>read-only tables</th><th>seq_scan</th><th>seq_tup_read</th><th>idx_scan</th><th>idx_tup_read</th>
+<th>n_tup_ins</th><th>n_tup_upd</th><th>n_tup_del</th></tr>
+<tr><td><a href="tableusage/r3225005.svg">keys</a></td><td>2</td><td>2.00</td>
+<td>2</td><td>1.00</td>
+<td>0</td><td>0</td><td>0</td></tr>
+</table><br /><a href="tableusage/tlf3225047.svg">View table information</a></td></tr>
+</tr>
+<tr>
+<td rowspan=6 valign="top"><a href="t3225049.svg"><img width="500" height="320" src="t3225049.svg" /></a></td>
+<td colspan=5><font size="+2">get_message </font></td></tr>
+<tr><td>5 calls</td><td>0.77 ms total</td><td>0.15 ms average</td>
+<td>First call<br />2014-08-06 20:44:38</td><td>Last call<br />2014-08-06 20:44:38</td></tr>
+<tr><td colspan=6>No calls today</td></tr><tr><td colspan=6>No calls in the current hour</td></tr><tr><td colspan=6>No calls in the previous hour</td></tr><tr><td colspan=5><table border=1 style="border: 1px solid lightgray; border-collapse: collapse">
+<tr><th>read-only tables</th><th>seq_scan</th><th>seq_tup_read</th><th>idx_scan</th><th>idx_tup_read</th>
+<th>n_tup_ins</th><th>n_tup_upd</th><th>n_tup_del</th></tr>
+<tr><td><a href="tableusage/r3225032.svg">messages</a></td><td>0</td><td>0</td>
+<td>5</td><td>1.00</td>
+<td>0</td><td>0</td><td>0</td></tr>
+</table><br /><a href="tableusage/tlf3225049.svg">View table information</a></td></tr>
+</tr>
+<tr>
+<td rowspan=6 valign="top"><a href="t3225046.svg"><img width="500" height="320" src="t3225046.svg" /></a></td>
+<td colspan=5><font size="+2">encrypt_sign </font></td></tr>
+<tr><td>1 calls</td><td>19.75 ms total</td><td>19.75 ms average</td>
+<td>First call<br />2014-08-06 20:44:38</td><td>Last call<br />2014-08-06 20:44:38</td></tr>
+<tr><td colspan=6>No calls today</td></tr><tr><td colspan=6>No calls in the current hour</td></tr><tr><td colspan=6>No calls in the previous hour</td></tr><tr><td colspan=5><table border=1 style="border: 1px solid lightgray; border-collapse: collapse">
+<tr><th>read-only tables</th><th>seq_scan</th><th>seq_tup_read</th><th>idx_scan</th><th>idx_tup_read</th>
+<th>n_tup_ins</th><th>n_tup_upd</th><th>n_tup_del</th></tr>
+<tr><td><a href="tableusage/r3225005.svg">keys</a></td><td>0</td><td>0</td>
+<td>2</td><td>1.00</td>
+<td>0</td><td>0</td><td>0</td></tr>
+</table><br /><a href="tableusage/tlf3225046.svg">View table information</a></td></tr>
+</tr>
+</tr></table>
+</html>

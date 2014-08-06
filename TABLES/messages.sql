@@ -1,8 +1,12 @@
 CREATE TABLE Messages (
-MessageID bytea not null,
+MessageID text not null,
+FileID text not null,
 FromBankID text not null,
 ToBankID text not null,
-MessageData bytea not null,
+Cipherdata bytea not null,
+DeliveryReceipt bytea,
 Datestamp timestamptz not null default now(),
-PRIMARY KEY (MessageID, FromBankID, ToBankID)
+Delivered timestamptz,
+PRIMARY KEY (MessageID),
+FOREIGN KEY (FileID) REFERENCES Files(FileID)
 );

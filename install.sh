@@ -10,8 +10,9 @@ sudo env USE_PGXS=1 make install
 
 psql -c "CREATE EXTENSION pgcrypto"
 
-psql -f TABLES/keys.sql
 psql -f TABLES/banks.sql
+psql -f TABLES/keys.sql
+psql -f TABLES/files.sql
 psql -f TABLES/messages.sql
 
 psql -f FUNCTIONS/encrypt_sign_message.sql
