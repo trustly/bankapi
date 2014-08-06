@@ -1,5 +1,4 @@
 CREATE EXTENSION pgcrypto;
-BEGIN;
 \i TABLES/banks.sql
 \i TABLES/keys.sql
 \i TABLES/files.sql
@@ -12,4 +11,3 @@ BEGIN;
 \i FUNCTIONS/receive_message.sql
 \i FUNCTIONS/read_message.sql
 \i FUNCTIONS/decode_delivery_receipt.sql
-COMMIT;
