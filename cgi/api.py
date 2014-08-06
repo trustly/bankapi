@@ -7,7 +7,7 @@ import psycopg2
 import psycopg2.extras
 import re
 
-pg_connect_str = "dbname=bankapi user=bankapi"
+pg_connect_str = "dbname=bankapi"
 pg_conn = None
 
 def respond(result=None, error=None):
