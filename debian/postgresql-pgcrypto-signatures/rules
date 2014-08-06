@@ -1,0 +1,37 @@
+#!/usr/bin/make -f
+
+VERSION=1.2-1
+PACKAGE=postgresql-pgcrypto-signatures-9.3
+ROOT=$(PWD)
+DEBIAN=$(ROOT)/debian/postgresql-pgcrypto-signatures
+PACKAGEDIR=$(ROOT)/$(PACKAGE)-$(VERSION)
+BUILDDIR=$(ROOT)/$(PACKAGE)-$(VERSION)-build
+CP=cp -p
+
+build: clean
+	mkdir -p "$(PACKAGEDIR)" \
+		"$(PACKAGEDIR)/DEBIAN"
+	mkdir -p "$(BUILDDIR)"
+	if [ ! -e "$(ROOT)/postgres/.git" ]; then \
+		git submodule init; \
+	fi	
+	tar -C postgres -cf - --exclude=.git . | tar -C "$(BUILDDIR)" -xf -
+	(cd "$(BUILDDIR)"; patch -p1 < "$(DEBIAN)/000-build.patch")
+	(cd "$(BUILDDIR)/contrib/pgcrypto"; USE_PGXS=1 $(MAKE))
+	perl -p -i -e 's/pgcrypto/pgcrypto_signatures/' "$(BUILDDIR)/contrib/pgcrypto/pgcrypto.control" "$(BUILDDIR)/contrib/pgcrypto/pgcrypto--1.2.sql"
+	(cd "$(BUILDDIR)/contrib/pgcrypto"; USE_PGXS=1 $(MAKE) DESTDIR=$(PACKAGEDIR) install)
+	(cd "$(PACKAGEDIR)";  find . -type f -name "*pgcrypto*"  -exec rename 's/pgcrypto/pgcrypto_signatures/' '{}' \;)
+
+
+install:
+
+binary: build
+	echo "Version: $(VERSION)" > "$(PACKAGEDIR)/DEBIAN/control"
+	cat "$(DEBIAN)/control" >> "$(PACKAGEDIR)/DEBIAN/control"
+	dpkg-deb -b "$(PACKAGEDIR)" "$(ROOT)"
+
+clean:
+	rm -rf "$(PACKAGEDIR)"
+	rm -rf "$(BUILDDIR)"
+
+.PHONY: build binary binary-arch binary-indep clean install configure

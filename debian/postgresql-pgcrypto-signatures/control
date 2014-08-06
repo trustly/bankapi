@@ -1,0 +1,10 @@
+Package: postgresql-pgcrypto-signatures-9.3
+Section: database
+Priority: optional
+Maintainer: Per Lejontand <per.lejontand@trustly.com>
+Homepage: https://github.com/johto/postgres/tree/pgcrypto_signatures
+Architecture: amd64
+Depends: postgresql-9.3 (>= 9.3)
+Description: Enhanced pgcrypto from the contrib part of PostgreSQL
+ Extended from https://github.com/johto/postgres/tree/pgcrypto_signatures to
+ include signature verification and signing
