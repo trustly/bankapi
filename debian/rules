@@ -32,7 +32,7 @@ binary-indep:
 	for file in "$(ROOT)"/TABLES/*.sql "$(ROOT)"/FUNCTIONS/*.sql; do \
 		cat $$file >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"; \
 	done
-	for file in "$(ROOT)"/TESTBANK*.asc; do \
+	for file in "$(ROOT)"/TESTBANK*.sql; do \
 		cat $$file >> "$(PACKAGEDIR)/usr/share/bankapi/testdata.sql"; \
 	done
 	$(CP) "$(ROOT)/etc/apache2/sites-available/010-bankapi.conf" "$(PACKAGEDIR)/etc/apache2/sites-available/010-bankapi.conf"
