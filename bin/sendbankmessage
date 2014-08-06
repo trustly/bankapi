@@ -43,11 +43,11 @@ try:
 except getopt.GetoptError as e:
     bail()
     
-if len(sys.argv) < 2:
+if len(argv) < 2:
     bail()
 
-from_bank = sys.argv[1]
-to_banks = sys.argv[2:]
+from_bank = args[0]
+to_banks = args[1:]
 
 try:
     pg_conn = psycopg2.connect(pg_connect_str)
