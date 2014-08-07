@@ -1,13 +1,13 @@
 #!/usr/bin/make -f
 
 VERSION=1.2-1
-PACKAGE=postgresql-pgcrypto-signatures-9.3
+PGVERSION=$$(pg_config --version | sed 's/.* //' | cut -f1-2 -d.)
+PACKAGE=postgresql-pgcrypto-signatures-$(PGVERSION)
 ROOT=$(PWD)
 DEBIAN=$(ROOT)/debian/postgresql-pgcrypto-signatures
 PACKAGEDIR=$(ROOT)/$(PACKAGE)-$(VERSION)
 BUILDDIR=$(ROOT)/$(PACKAGE)-$(VERSION)-build
 CP=cp -p
-PGVERSION=$$(pg_config --version | sed 's/.* //' | cut -f1-2 -d.)
 
 build: clean
 	if [ ! -f "$(DEBIAN)/control-$(PGVERSION)" ]; then \
