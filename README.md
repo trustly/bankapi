@@ -16,6 +16,7 @@ allows banks to trust the validity of the public key and API URL, as the origin
 of SWIFT messages can be trusted.
 
 ## Highlights
+
 - RSA-encryption
 - SHA512
 - JSON-RPC / HTTPS
@@ -26,6 +27,7 @@ of SWIFT messages can be trusted.
 - Local archiving of files in PostgreSQL
 
 ## Overview of the interface
+
 To send a message, the sending bank encrypts and signs a message using
 Create\_Message(), and calls Get\_Message() to get the actual ciphertext
 content of the message.  The ciphertext is then delivered to the receiving bank
