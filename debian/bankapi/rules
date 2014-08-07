@@ -12,14 +12,14 @@ build: clean
 		"$(PACKAGEDIR)/usr/share/bankapi" \
 		"$(PACKAGEDIR)/etc/apache2/sites-available" \
 		"$(PACKAGEDIR)/var/www/bankapi" \
-		"$(PACKAGEDIR)/bin" \
+		"$(PACKAGEDIR)/usr/bin" \
 		"$(PACKAGEDIR)/DEBIAN"
 	$(CP) "$(ROOT)/install.sql" "$(PACKAGEDIR)/usr/share/bankapi/install.sql"
 	cat "$(ROOT)/misc/roles.sql" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"
 	cat "$(ROOT)/misc/pg_hba.sql" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"
 	$(CP) "$(ROOT)/etc/apache2/sites-available/010-bankapi.conf" "$(PACKAGEDIR)/etc/apache2/sites-available/010-bankapi.conf"
 	$(CP) "$(ROOT)/cgi/api.py" "$(PACKAGEDIR)/var/www/bankapi/api.py"
-	$(CP) "$(ROOT)/bin/sendbankmessage" "$(PACKAGEDIR)/bin/sendbankmessage"
+	$(CP) "$(ROOT)/bin/sendbankmessage" "$(PACKAGEDIR)/usr/bin/sendbankmessage"
 	$(CP) "$(DEBIAN)/postinst" "$(PACKAGEDIR)/DEBIAN/postinst"
 	$(CP) "$(DEBIAN)/postrm" "$(PACKAGEDIR)/DEBIAN/postrm"
 	$(CP) -r "$(ROOT)/TABLES" "$(PACKAGEDIR)/usr/share/bankapi"
