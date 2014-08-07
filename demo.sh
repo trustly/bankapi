@@ -11,12 +11,12 @@ createdb TESTBANK002
 
 psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f install.sql -d TESTBANK001
 psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f install.sql -d TESTBANK002
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f test-banks.sql -d TESTBANK001
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f test-banks.sql -d TESTBANK002
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f test-publickeyrings.sql -d TESTBANK001
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f test-publickeyrings.sql -d TESTBANK002
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f test-secretkeyring-TESTBANK001.sql -d TESTBANK001
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f test-secretkeyring-TESTBANK002.sql -d TESTBANK002
+psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-banks.sql -d TESTBANK001
+psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-banks.sql -d TESTBANK002
+psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-publickeyrings.sql -d TESTBANK001
+psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-publickeyrings.sql -d TESTBANK002
+psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-secretkeyring-TESTBANK001.sql -d TESTBANK001
+psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-secretkeyring-TESTBANK002.sql -d TESTBANK002
 
 # Use Create_Message() to encrypt/sign a new message.
 
