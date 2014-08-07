@@ -1,4 +1,4 @@
 [submodule "postgres"]
 	path = postgres
-	url = git@github.com:johto/postgres.git
+	url = https://github.com/johto/postgres.git
 	branch = pgcrypto_signatures
