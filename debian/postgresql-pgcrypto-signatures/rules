@@ -7,8 +7,13 @@ DEBIAN=$(ROOT)/debian/postgresql-pgcrypto-signatures
 PACKAGEDIR=$(ROOT)/$(PACKAGE)-$(VERSION)
 BUILDDIR=$(ROOT)/$(PACKAGE)-$(VERSION)-build
 CP=cp -p
+PGVERSION=$$(pg_config --version | sed 's/.* //' | cut -f1-2 -d.)
 
 build: clean
+	if [ ! -f "$(DEBIAN)/control-$(PGVERSION)" ]; then \
+		echo "No control for PostgreSQL $(PGVERSION)"; \
+		exit 1; \
+	fi
 	mkdir -p "$(PACKAGEDIR)" \
 		"$(PACKAGEDIR)/DEBIAN"
 	mkdir -p "$(BUILDDIR)"
@@ -22,11 +27,12 @@ build: clean
 	(cd "$(BUILDDIR)/contrib/pgcrypto"; USE_PGXS=1 $(MAKE) DESTDIR=$(PACKAGEDIR) install)
 	(cd "$(PACKAGEDIR)";  find . -type f -name "*pgcrypto*"  -exec rename 's/pgcrypto/pgcrypto_signatures/' '{}' \;)
 
-
 install:
 
 binary: build
 	echo "Version: $(VERSION)" > "$(PACKAGEDIR)/DEBIAN/control"
+	echo "Architecture: $$(dpkg-architecture -qDEB_BUILD_ARCH)" >> "$(PACKAGEDIR)/DEBIAN/control"
+	cat "$(DEBIAN)/control-$(PGVERSION)" >> "$(PACKAGEDIR)/DEBIAN/control"
 	cat "$(DEBIAN)/control" >> "$(PACKAGEDIR)/DEBIAN/control"
 	dpkg-deb -b "$(PACKAGEDIR)" "$(ROOT)"
 
