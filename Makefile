@@ -20,5 +20,5 @@ pgcrypto:
 
 .PHONY: bankapi
 bankapi:
-	$(MAKE_BANKAPI) build binary clean
+	$(MAKE_BANKAPI) build binary
 	$(MAKE_BANKAPI) clean
