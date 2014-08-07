@@ -9,6 +9,7 @@ import re
 import httplib
 import pprint
 import socket
+import getopt
 
 pg_connect_str = "dbname=bankapi"
 pg_conn = None
@@ -20,13 +21,28 @@ def bail(error=None):
     if error is not None:
         print "Error: %s" % (error)
     else:
-        print "Usage: %s FROMBANK TOBANK [TOBANK..]" % (sys.argv[0])
+        print "Usage: %s [-m messagehub] [-d dbname] FROMBANK TOBANK [TOBANK..]" % (sys.argv[0])
         print ""
-        print "Message to be sent is read from stdin"
+        print "Message to be sent is read from stdin."
+        print ""
+        print "    -m messagehub Protocol and hostname of host acting as messagehub"
+        print "                  (default: http://localhost)"
+        print "    -d dbname     Name of database to use locally (default: bankapi)"
 
     sys.exit(1)
 
-
+try:
+    opts, args = getopt.getopt(sys.argv[1:], 'd:m:')
+    for o, a in opts:
+        if o == '-d':
+            pg_connect_str = "dbname=%s" % (a)
+        elif o == '-m':
+            messagehub = a
+        else:
+            bail()
+except getopt.GetoptError as e:
+    bail()
+    
 if len(sys.argv) < 2:
     bail()
 
@@ -36,7 +52,7 @@ to_banks = sys.argv[2:]
 try:
     pg_conn = psycopg2.connect(pg_connect_str)
 except psycopg2.OperationalError as e:
-    bail(error='Failed to connect to database: %s' % (e.pgerror))
+    bail(error='Failed to connect to database')
 
 messagetext = None
 try:
