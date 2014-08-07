@@ -142,7 +142,7 @@ extension.
 ### bankapi-0.1.deb
 
 Package contains the command line tools for sending messages
-(/bin/sendbankmessage), SQL needed for creating the bankapi in postgres and
+(/usr/bin/sendbankmessage), SQL needed for creating the bankapi in postgres and
 installes a CGI as an endpoint for receving incoming communication messages.
 
 The installation of the module installs and activates the CGI script. It will
