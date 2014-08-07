@@ -22,6 +22,7 @@ build: clean
 	fi
 	tar -C postgres -cf - --exclude=.git . | tar -C "$(BUILDDIR)" -xf -
 	(cd "$(BUILDDIR)"; patch -p1 < "$(DEBIAN)/000-build.patch")
+	(cd "$(BUILDDIR)"; patch -p1 < "$(DEBIAN)/001-disablefunctions.patch")
 	(cd "$(BUILDDIR)/contrib/pgcrypto"; USE_PGXS=1 $(MAKE))
 	perl -p -i -e 's/pgcrypto/pgcrypto_signatures/' "$(BUILDDIR)/contrib/pgcrypto/pgcrypto.control" "$(BUILDDIR)/contrib/pgcrypto/pgcrypto--1.2.sql"
 	(cd "$(BUILDDIR)/contrib/pgcrypto"; USE_PGXS=1 $(MAKE) DESTDIR=$(PACKAGEDIR) install)
