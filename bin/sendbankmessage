@@ -1,0 +1,131 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys
+import json
+import psycopg2
+import psycopg2.extras
+import re
+import httplib
+import pprint
+import socket
+
+pg_connect_str = "dbname=bankapi"
+pg_conn = None
+
+messagehub = "http://localhost"
+
+def bail(error=None):
+
+    if error is not None:
+        print "Error: %s" % (error)
+    else:
+        print "Usage: %s FROMBANK TOBANK [TOBANK..]" % (sys.argv[0])
+        print ""
+        print "Message to be sent is read from stdin"
+
+    sys.exit(1)
+
+
+if len(sys.argv) < 2:
+    bail()
+
+from_bank = sys.argv[1]
+to_banks = sys.argv[2:]
+
+try:
+    pg_conn = psycopg2.connect(pg_connect_str)
+except psycopg2.OperationalError as e:
+    bail(error='Failed to connect to database: %s' % (e.pgerror))
+
+messagetext = None
+try:
+    messagetext = sys.stdin.read()
+except Exception as e:
+    bail(error='Failed to read message text from stdin')
+
+if messagetext is None or len(messagetext) == 0:
+    bail(error='No message text supplied')
+
+for to_bank in to_banks:
+    print "Sending message %s -> %s" % (from_bank, to_bank)
+    cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    messageid = None
+
+    ciphertext = None
+    try:
+        cur.execute("""SELECT CipherText FROM Get_Message(Create_Message(
+            _PlainText := %s,
+            _FromBankID := %s,
+            _ToBankID := %s
+            ))""",
+            [messagetext, from_bank, to_bank]);
+
+        sqldata = cur.fetchone()
+        ciphertext = sqldata['ciphertext']
+        pg_conn.commit()
+    except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
+        pg_conn.rollback()
+        bail(error=e.pgerror)
+
+    print " Delivering message via %s " % (messagehub),
+
+    client = None
+
+    if messagehub[:5] == 'https':
+        client = httplib.HTTPSConnection(messagehub[8:])
+    else:
+        client = httplib.HTTPConnection(messagehub[7:])
+
+    request = {
+            "version": "1.1",
+            "method": "receive_message", 
+            "params": {
+                "ciphertext": ciphertext
+                }
+            }
+    headers = {
+            "Content-Type": "application/json"
+            }
+
+    request_str = json.dumps(request)
+    response = None
+
+    try:
+        client.request('POST', '/bankapi', request_str, headers)
+        response = client.getresponse()
+    except (socket.gaierror, socket.error) as e:
+        bail(error="Could not connect to %s: %s" % (messagehub, str(e)))
+
+    print " %s %s" % (response.status, response.reason)
+
+    if response.status == 200:
+        response_body = response.read()
+        try:
+            response_json = json.loads(response_body)
+
+            delivery_reciept = response_json['result']['deliveryreceipt']
+
+            print " Saving delivery recieipt" 
+
+            cur.execute("""SELECT FileID, FromBankID, ToBankID FROM Decode_Delivery_Receipt(
+                _DeliveryReceipt := %s
+                )""",
+                [delivery_reciept])
+
+            sqldata = cur.fetchone()
+            print " Message delivered to %s (from %s) %s" % (sqldata['tobankid'], sqldata['frombankid'], sqldata['fileid'])
+            pg_conn.commit()
+        except KeyError as e:
+            if response_json is not None and reponse_json.get('error'):
+                bail(error="Delivery failed with error: %s" % (response_json['error']))
+        except ValueError as e:
+            bail(error="Failed to process response (%s)" % (response_body))
+        except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
+            pg_conn.rollback()
+            bail(error=e.pgerror)
+    else:
+        pass
+
+sys.exit(0)
+
