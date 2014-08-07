@@ -1,0 +1,3 @@
+ALTER TABLE ONLY keys
+    ADD CONSTRAINT keys_bankid_fkey FOREIGN KEY (BankID) REFERENCES Banks(BankID);
+
