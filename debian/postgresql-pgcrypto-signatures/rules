@@ -21,8 +21,8 @@ build: clean
 		git submodule update --init; \
 	fi
 	tar -C postgres -cf - --exclude=.git . | tar -C "$(BUILDDIR)" -xf -
-	(cd "$(BUILDDIR)"; patch -p1 < "$(DEBIAN)/000-build.patch")
-	(cd "$(BUILDDIR)"; patch -p1 < "$(DEBIAN)/001-disablefunctions.patch")
+	(cd "$(BUILDDIR)"; patch -t -p1 < "$(DEBIAN)/000-build.patch")
+	(cd "$(BUILDDIR)"; patch -t -p1 < "$(DEBIAN)/001-disablefunctions.patch")
 	(cd "$(BUILDDIR)/contrib/pgcrypto"; USE_PGXS=1 $(MAKE))
 	perl -p -i -e 's/pgcrypto/pgcrypto_signatures/' "$(BUILDDIR)/contrib/pgcrypto/pgcrypto.control" "$(BUILDDIR)/contrib/pgcrypto/pgcrypto--1.2.sql"
 	(cd "$(BUILDDIR)/contrib/pgcrypto"; USE_PGXS=1 $(MAKE) DESTDIR=$(PACKAGEDIR) install)
@@ -31,7 +31,8 @@ build: clean
 install:
 
 binary: build
-	echo "Version: $(VERSION)" > "$(PACKAGEDIR)/DEBIAN/control"
+	echo "Package: $(PACKAGE)" > "$(PACKAGEDIR)/DEBIAN/control"
+	echo "Version: $(VERSION)" >> "$(PACKAGEDIR)/DEBIAN/control"
 	echo "Architecture: $$(dpkg-architecture -qDEB_BUILD_ARCH)" >> "$(PACKAGEDIR)/DEBIAN/control"
 	cat "$(DEBIAN)/control-$(PGVERSION)" >> "$(PACKAGEDIR)/DEBIAN/control"
 	cat "$(DEBIAN)/control" >> "$(PACKAGEDIR)/DEBIAN/control"

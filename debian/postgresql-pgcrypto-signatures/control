@@ -1,4 +1,4 @@
-Package: postgresql-pgcrypto-signatures-9.3
+Provides: postgresql-pgcrypto-signatures
 Section: database
 Priority: optional
 Maintainer: Per Lejontand <per.lejontand@trustly.com>
