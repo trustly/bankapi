@@ -100,3 +100,46 @@ The DeliveryReceipt is returned to the sender who called Receive_Message(), i.e.
 Decrypts and verifies the DeliveryReceipt, where the keys involved and the Plaintext
 should match a row in Messages. If so, the Message has been successfully delivered,
 and the Messages.DeliveryReceipt and Messages.Delivered columns are set.
+
+
+## Installing and building .deb packages for installation
+The repository includes scripts for building debian/ubuntu packages for the
+bankapi and the required pgcrypto extensions (in PostgreSQL) in order to run
+the code. 
+
+If you are running a different version of PostgreSQL then 9.3 then replace the
+version in the commands below with the appropriate version. If you are running
+the default version in Debian you can omit the version extension of the
+packages names.
+
+- sudo apt-get build-dep postgresql-9.3
+- sudo apt-get install postgresql-server-dev-9.3
+- make
+
+This should produce two deb files, one for bankapi and one for the pgcrypto extension.
+
+### bankapi-0.1.deb
+Package contains the command line tools for sending messages
+(/bin/sendbankmessage), SQL needed for creating the bankapi in postgres and
+installes a CGI as an endpoint for receving incoming communication messages.
+
+The installation of the module installs and activates the CGI script. It will
+be available under http://localhost/bankapi .
+
+The installation does not finish the installation of the database but leaves
+this as a manual task. Follow the following steps for a default database
+installation:
+- cd /usr/share/bankapi
+- sudo -u postgres createdb bankapi
+- sudo -u postgres psql --dbname=bankapi --single-transaction --no-psqlrc --file=install.sql
+- Make sure www-data user can connect to the bankapi database, this can for
+  instance be done by adding the following line where appropriate in the active
+  pg_hba.conf file: local www-data bankapi peer
+- To optionally install the test bank data: sudo -u postgres psql --dbname=bankapi --single-transaction --no-psqlrc --file=testdata/index.sql
+
+### postgresql-pgcrypto-signatures-9.3.deb
+This is an extension to the pgcrypto PostgreSQL extension. The extension only
+installs with the extended functions, all functions normally in pgcrypto is
+still accessed from the standard pgcrypto extension. The extension is called
+pgcrypto_signatures.
+
