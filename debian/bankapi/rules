@@ -13,9 +13,10 @@ build: clean
 		"$(PACKAGEDIR)/etc/apache2/sites-available" \
 		"$(PACKAGEDIR)/var/www/bankapi" \
 		"$(PACKAGEDIR)/DEBIAN"
-	cat "$(ROOT)/misc/extensions.sql" "$(ROOT)/misc/roles.sql" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql" 
+	cat "$(ROOT)/misc/install-start.sql" "$(ROOT)/misc/extensions.sql" "$(ROOT)/misc/roles.sql" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql" 
+	rootlen=$$(echo -n "$(ROOT)//" | wc -c); \
 	for file in "$(ROOT)"/TABLES/*.sql "$(ROOT)"/FK_CONSTRAINTS/*.sql "$(ROOT)"/FUNCTIONS/*.sql; do \
-		echo "\\i $$file" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"; \
+		echo "\\i $$(echo "$$file" | cut -c$$rootlen-)" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"; \
 	done
 	cat "$(ROOT)/misc/pg_hba.sql" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"
 	$(CP) "$(ROOT)/etc/apache2/sites-available/010-bankapi.conf" "$(PACKAGEDIR)/etc/apache2/sites-available/010-bankapi.conf"
