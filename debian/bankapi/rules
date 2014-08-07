@@ -23,7 +23,6 @@ build: clean
 	$(CP) "$(DEBIAN)/postinst" "$(PACKAGEDIR)/DEBIAN/postinst"
 	$(CP) "$(DEBIAN)/postrm" "$(PACKAGEDIR)/DEBIAN/postrm"
 	$(CP) -r "$(ROOT)/TABLES" "$(PACKAGEDIR)/usr/share/bankapi"
-	$(CP) -r "$(ROOT)/FK_CONSTRAINTS" "$(PACKAGEDIR)/usr/share/bankapi"
 	$(CP) -r "$(ROOT)/FUNCTIONS" "$(PACKAGEDIR)/usr/share/bankapi"
 	$(CP) -r "$(ROOT)/testdata" "$(PACKAGEDIR)/usr/share/bankapi"
 
