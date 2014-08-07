@@ -1,4 +1,5 @@
 CREATE EXTENSION pgcrypto;
+CREATE EXTENSION pgcrypto_signatures;
 
 \i TABLES/banks.sql
 \i TABLES/keys.sql
