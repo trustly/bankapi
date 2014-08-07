@@ -7,5 +7,6 @@ Cipherdata bytea not null,
 DeliveryReceipt bytea,
 Datestamp timestamptz not null default now(),
 Delivered timestamptz,
-PRIMARY KEY (MessageID)
+PRIMARY KEY (MessageID),
+FOREIGN KEY (FileID) REFERENCES Files(FileID)
 );

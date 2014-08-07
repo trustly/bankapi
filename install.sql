@@ -6,9 +6,6 @@ CREATE EXTENSION pgcrypto_signatures;
 \i TABLES/files.sql
 \i TABLES/messages.sql
 
-\i FK_CONSTRAINTS/keys_bankid_fkey.sql
-\i FK_CONSTRAINTS/messages_fileid_fkey.sql
-
 \i FUNCTIONS/encrypt_sign.sql
 \i FUNCTIONS/decrypt_verify.sql
 \i FUNCTIONS/create_message.sql
