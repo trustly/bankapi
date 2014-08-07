@@ -15,16 +15,17 @@ build: clean
 		"$(PACKAGEDIR)/DEBIAN"
 	cat "$(ROOT)/misc/extensions.sql" "$(ROOT)/misc/roles.sql" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql" 
 	for file in "$(ROOT)"/TABLES/*.sql "$(ROOT)"/FK_CONSTRAINTS/*.sql "$(ROOT)"/FUNCTIONS/*.sql; do \
-		cat $$file >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"; \
+		echo "\\i $$file" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"; \
 	done
-	cat "$(ROOT)/misc/pg_hba.sql" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql" 
-	for file in "$(ROOT)"/TESTBANK*.sql; do \
-		cat $$file >> "$(PACKAGEDIR)/usr/share/bankapi/testdata.sql"; \
-	done
+	cat "$(ROOT)/misc/pg_hba.sql" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"
 	$(CP) "$(ROOT)/etc/apache2/sites-available/010-bankapi.conf" "$(PACKAGEDIR)/etc/apache2/sites-available/010-bankapi.conf"
 	$(CP) "$(ROOT)/cgi/api.py" "$(PACKAGEDIR)/var/www/bankapi/api.py"
 	$(CP) "$(DEBIAN)/postinst" "$(PACKAGEDIR)/DEBIAN/postinst"
 	$(CP) "$(DEBIAN)/postrm" "$(PACKAGEDIR)/DEBIAN/postrm"
+	$(CP) -r "$(ROOT)/TABLES" "$(PACKAGEDIR)/usr/share/bankapi"
+	$(CP) -r "$(ROOT)/FK_CONSTRAINTS" "$(PACKAGEDIR)/usr/share/bankapi"
+	$(CP) -r "$(ROOT)/FUNCTIONS" "$(PACKAGEDIR)/usr/share/bankapi"
+	$(CP) -r "$(ROOT)/testdata" "$(PACKAGEDIR)/usr/share/bankapi"
 
 install:
 
