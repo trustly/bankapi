@@ -13,8 +13,8 @@ build: clean
 		"$(PACKAGEDIR)/DEBIAN"
 	mkdir -p "$(BUILDDIR)"
 	if [ ! -e "$(ROOT)/postgres/.git" ]; then \
-		git submodule init; \
-	fi	
+		git submodule update --init; \
+	fi
 	tar -C postgres -cf - --exclude=.git . | tar -C "$(BUILDDIR)" -xf -
 	(cd "$(BUILDDIR)"; patch -p1 < "$(DEBIAN)/000-build.patch")
 	(cd "$(BUILDDIR)/contrib/pgcrypto"; USE_PGXS=1 $(MAKE))
