@@ -11,7 +11,19 @@ set -e
 #
 # Install the debian packages for bankapi to get the cgi listening, then modify
 # /var/www/bankapi/bankapi.py to point to the TESTBANK002 database (dbname=TESTBANK002)
-echo "Sending message using sendmessage"
+echo "Sending message using bankapi"
 echo 'This is another secret message from TESTBANK001 to TESTBANK002' | \
     /usr/bin/bankapi send -d TESTBANK001 TESTBANK001 TESTBANK002 text/plain -
 
+
+
+# List the messages present in both databases. The information in the two
+# databases should really be the same as we update and keep all the message
+# information in sync between the two. 
+echo "List messages in the system of TESTBANK001"
+    /usr/bin/bankapi list -d TESTBANK001
+
+echo "List messages in the system of TESTBANK002"
+    /usr/bin/bankapi list -d TESTBANK002
+
+echo "The two lists of messages should be identical (apart from minor differences in timestamps)"
