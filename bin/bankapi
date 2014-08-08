@@ -22,7 +22,8 @@ def bail(error=None):
         print "Usage: %s [-d dbname] <command> <args>" % (sys.argv[0])
         print ""
         print "Commands:"
-        print " send FROMBANK TOBANK filetype filename [ filetype filename ... ]"
+        print " send FROMBANK TOBANK messagetype filename [ messagetype filename ... ]"
+        print " list"
         print ""
         print "Arguments:"
         print "    -d dbname     Name of database to use locally (default: bankapi)"
@@ -30,10 +31,8 @@ def bail(error=None):
     sys.exit(1)
 
 def process_commandline(command, argv):
-    pprint.pprint(argv)
-
     if command == 'send':
-            # We need even pairs with filetype/filename for sending
+            # We need even pairs with messagetype/filename for sending
         if len(argv) < 4 or len(argv) % 2:
             bail()
 
@@ -43,17 +42,20 @@ def process_commandline(command, argv):
 
         while argv:
             files.append({
-                'filetype': argv.pop(0),
+                'messagetype': argv.pop(0),
                 'filename': argv.pop(0)
                 })
 
-        pprint.pprint(files)
         for filedata in files:
-            send_file(frombank, tobank, filedata['filetype'], filedata['filename'])
+            send_file(frombank, tobank, filedata['messagetype'], filedata['filename'])
+    elif command == 'list':
+        list_messages()
     else:
         bail('Invalid command "%s"' % (command))
 
-def send_file(from_bank, to_bank, filetype, filename):
+def send_file(from_bank, to_bank, messagetype, filename):
+    global pg_conn
+
     fh = None
     if filename == '-':
         fh = sys.stdin
@@ -111,10 +113,11 @@ def send_file(from_bank, to_bank, filetype, filename):
     try:
         cur.execute("""SELECT CipherText FROM Get_Message(Create_Message(
             _PlainText := %s,
+            _MessageType := %s,
             _FromBankID := %s,
             _ToBankID := %s
             ))""",
-            [messagetext, from_bank, to_bank]);
+            [messagetext, messagetype, from_bank, to_bank]);
 
         sqldata = cur.fetchone()
         ciphertext = sqldata['ciphertext']
@@ -156,6 +159,24 @@ def send_file(from_bank, to_bank, filetype, filename):
     else:
         bail(error="Failure")
 
+def list_messages():
+    global pg_conn
+
+    try:
+        cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute("SELECT DateStamp, MessageID, MessageType, FromBankID, ToBankID FROM List_Messages()")
+
+        print "{datestamp:19} {messageid:10} {messagetype:15.15}{frombankid:17.17}{tobankid:17.17}".format(datestamp='Date', messageid='ID', messagetype='Type', frombankid='From bank', tobankid='To bank')
+        for sqldata in cur:
+            print "{datestamp:%Y-%m-%d %H:%M:%S} {messageid:10} {messagetype:15.15}{frombankid:17.17}{tobankid:17.17}".format(**dict(sqldata))
+
+        print " %s messages" % (cur.rowcount)
+
+        pg_conn.commit()
+    except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
+        pg_conn.rollback()
+        bail(error=e.pgerror)
+
 if len(sys.argv) < 2:
     bail()
 
@@ -170,7 +191,7 @@ try:
             bail()
 except getopt.GetoptError as e:
     bail()
-    
+
 try:
     pg_conn = psycopg2.connect(pg_connect_str)
 except psycopg2.OperationalError as e:
