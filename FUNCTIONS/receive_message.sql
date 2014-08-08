@@ -2,6 +2,7 @@ CREATE OR REPLACE FUNCTION Receive_Message(OUT DeliveryReceipt text, _Ciphertext
 DECLARE
 _Cipherdata bytea;
 _MessageID text;
+_MessageType text := 'text/plain'; -- hard-coded until we have pgp_armor_header(armor text, key text)
 _EncryptionKeyID text;
 _SignatureKeyID text;
 _Plaintext text;
@@ -35,8 +36,8 @@ END IF;
 
 SELECT Messages.DeliveryReceipt INTO _DeliveryReceipt FROM Messages WHERE MessageID = _MessageID;
 IF NOT FOUND THEN
-    INSERT INTO Messages ( MessageID,  FileID,  FromBankID,  ToBankID,  Cipherdata)
-    VALUES               (_MessageID, _FileID, _FromBankID, _ToBankID, _Cipherdata)
+    INSERT INTO Messages ( MessageID,  MessageType,  FileID,  FromBankID,  ToBankID,  Cipherdata)
+    VALUES               (_MessageID, _MessageType, _FileID, _FromBankID, _ToBankID, _Cipherdata)
     RETURNING TRUE INTO STRICT _OK;
 END IF;
 IF _DeliveryReceipt IS NULL THEN
