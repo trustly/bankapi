@@ -22,8 +22,9 @@ def bail(error=None):
         print "Usage: %s [-d dbname] <command> <args>" % (sys.argv[0])
         print ""
         print "Commands:"
-        print " send FROMBANK TOBANK messagetype filename [ messagetype filename ... ]"
+        print " send frombank tobank messagetype filename [ messagetype filename ... ]"
         print " list"
+        print " read messageid"
         print ""
         print "Arguments:"
         print "    -d dbname     Name of database to use locally (default: bankapi)"
@@ -50,6 +51,11 @@ def process_commandline(command, argv):
             send_file(frombank, tobank, filedata['messagetype'], filedata['filename'])
     elif command == 'list':
         list_messages()
+    elif command == 'read':
+        if len(argv) != 1:
+            bail()
+
+        read_message(argv[0])
     else:
         bail('Invalid command "%s"' % (command))
 
@@ -176,6 +182,30 @@ def list_messages():
     except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
         pg_conn.rollback()
         bail(error=e.pgerror)
+
+def read_message(messageid):
+    global pg_conn
+
+    try:
+        cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute("SELECT PlainText FROM Read_Message(%s)",
+                [messageid])
+
+        sqldata = cur.fetchone()
+
+        print sqldata['plaintext'],
+
+        pg_conn.commit()
+    except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
+        pg_conn.rollback()
+
+        if e.pgcode == 'P0002':
+            bail('No such message')
+        elif e.pgcode == 'P0003':
+            bail('Message ID amibgous')
+
+        bail(error=e.pgcode)
+
 
 if len(sys.argv) < 2:
     bail()
