@@ -96,10 +96,10 @@ if indata is not None:
             if mg is not None:
                 respond(error=mg.group(1))
             else:
-                respond(error='Call failed')
+                respond(error='Receieve processing failed')
         except psycopg2.ProgrammingError as e:
             pg_conn.rollback()
-            respond(error='Call failed')
+            respond(error='Recieve processing failed')
     else:
         respond(error='Invalid method')
 
