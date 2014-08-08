@@ -1,5 +1,5 @@
 SELECT Register_Secret_Keyring(
-    _BankID := 'TESTBANK001',
+    _BankID := 'TESTBANK002',
     _SecretKeyring := $$
 -----BEGIN PGP PRIVATE KEY BLOCK-----
 Version: GnuPG/MacGPG2 v2.0.22 (Darwin)
