@@ -1,4 +1,6 @@
-UPDATE Keys SET SecretKeyring = dearmor($$
+SELECT Register_Secret_Keyring(
+    _BankID := 'TESTBANK001',
+    _SecretKeyring := $$
 -----BEGIN PGP PRIVATE KEY BLOCK-----
 Version: GnuPG/MacGPG2 v2.0.22 (Darwin)
 Comment: GPGTools - http://gpgtools.org
@@ -57,4 +59,4 @@ as6wq1CY/cvSChUcpWdANTIyDu2wXaW2eY6+Ff9QlhwpWycC6MA1AOCUImnfAf5S
 XVVvRmZKrf6b7dGhhdAJ
 =7TYY
 -----END PGP PRIVATE KEY BLOCK-----
-$$) WHERE BankID = 'TESTBANK002';
+$$);

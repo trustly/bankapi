@@ -15,3 +15,5 @@ CREATE EXTENSION pgcrypto_signatures;
 \i FUNCTIONS/decode_delivery_receipt.sql
 \i FUNCTIONS/list_messages.sql
 \i FUNCTIONS/register_bank.sql
+\i FUNCTIONS/register_public_keyring.sql
+\i FUNCTIONS/register_secret_keyring.sql

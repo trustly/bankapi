@@ -1,5 +1,6 @@
-INSERT INTO Keys (BankID, MainKeyID, SubKeyID, PublicKeyring)
-VALUES ('TESTBANK001', '4F5C0E03014223B9', '3395ABB62BD7C2ED', dearmor($$
+SELECT Register_Public_Keyring (
+    _BankID := 'TESTBANK001',
+    _PublicKeyring := $$
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG/MacGPG2 v2.0.22 (Darwin)
 Comment: GPGTools - http://gpgtools.org
@@ -31,10 +32,11 @@ HkQIQQSU/Y0RNMG6SzmaEfp7NlfrYilR9WRW4ixWI7YD1oMlMSRdkoTkw56kxSCW
 NuEoDoRUv26Z
 =ZOLk
 -----END PGP PUBLIC KEY BLOCK-----
-$$));
+$$);
 
-INSERT INTO Keys (BankID, MainKeyID, SubKeyID, PublicKeyring)
-VALUES ('TESTBANK002', '016981F72190A1B1', 'A8B59095F9C96090', dearmor($$
+SELECT Register_Public_Keyring (
+    _BankID := 'TESTBANK002',
+    _PublicKeyring := $$
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG/MacGPG2 v2.0.22 (Darwin)
 Comment: GPGTools - http://gpgtools.org
@@ -66,4 +68,4 @@ bUoUqKtroRgKjG25DAifuuhiTu7I5fPgIZWbAXHbZblpTXJ4FdPC4XOBas6wq1CY
 rf6b7dGhhdAJ
 =yR8T
 -----END PGP PUBLIC KEY BLOCK-----
-$$));
+$$);
