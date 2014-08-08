@@ -13,5 +13,5 @@ set -e
 # /var/www/bankapi/bankapi.py to point to the TESTBANK002 database (dbname=TESTBANK002)
 echo "Sending message using sendmessage"
 echo 'This is another secret message from TESTBANK001 to TESTBANK002' | \
-    /usr/bin/bankapi -d TESTBANK001 TESTBANK001 TESTBANK002
+    /usr/bin/bankapi send -d TESTBANK001 TESTBANK001 TESTBANK002 text/plain -
 
