@@ -10,7 +10,7 @@ set -e
 # database is initialized as in demo.sh
 #
 # Install the debian packages for bankapi to get the cgi listening, then modify
-# /var/www/bankapi/api.py to point to the TESTBANK002 database (dbname=TESTBANK002)
+# /var/www/bankapi/bankapi.py to point to the TESTBANK002 database (dbname=TESTBANK002)
 echo "Sending message using sendmessage"
 echo 'This is another secret message from TESTBANK001 to TESTBANK002' | \
     /usr/bin/bankapi -d TESTBANK001 TESTBANK001 TESTBANK002
