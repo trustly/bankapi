@@ -9,22 +9,23 @@ dropdb TESTBANK002
 createdb TESTBANK001
 createdb TESTBANK002
 
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f install.sql -d TESTBANK001
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f install.sql -d TESTBANK002
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-banks.sql -d TESTBANK001
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-banks.sql -d TESTBANK002
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-publickeyrings.sql -d TESTBANK001
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-publickeyrings.sql -d TESTBANK002
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-secretkeyring-TESTBANK001.sql -d TESTBANK001
-psql -X -q -o /dev/null -1 -v ON_ERROR_STOP=1 -f testdata/test-secretkeyring-TESTBANK002.sql -d TESTBANK002
+psql -X -q -f install.sql -d TESTBANK001
+psql -X -q -f install.sql -d TESTBANK002
+psql -X -q -f testdata/test-banks.sql -d TESTBANK001
+psql -X -q -f testdata/test-banks.sql -d TESTBANK002
+psql -X -q -f testdata/test-publickeyrings.sql -d TESTBANK001
+psql -X -q -f testdata/test-publickeyrings.sql -d TESTBANK002
+psql -X -q -f testdata/test-secretkeyring-TESTBANK001.sql -d TESTBANK001
+psql -X -q -f testdata/test-secretkeyring-TESTBANK002.sql -d TESTBANK002
 
 # Use Create_Message() to encrypt/sign a new message.
 
 MessageID=$(psql -P format=unaligned -t -c "
     SELECT MessageID FROM Create_Message(
-        _Plaintext  := 'This is a secret message from TESTBANK001 to TESTBANK002',
-        _FromBankID := 'TESTBANK001',
-        _ToBankID   := 'TESTBANK002'
+        _MessageType := 'text/plain',
+        _Plaintext   := 'This is a secret message from TESTBANK001 to TESTBANK002',
+        _FromBankID  := 'TESTBANK001',
+        _ToBankID    := 'TESTBANK002'
     );
 " -d TESTBANK001)
 
