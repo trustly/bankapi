@@ -1,5 +1,7 @@
 # bankapi
 
+![layout](https://raw.githubusercontent.com/trustly/bankapi/master/doc/BankAPI%20System%20Design.png)
+
 BankAPI is a OpenPGP compliant secure distributed messaging system.
 
 The system is built on top of PostgreSQL and uses its pgcrypto contrib module.
