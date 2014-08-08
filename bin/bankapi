@@ -10,11 +10,14 @@ import httplib
 import pprint
 import socket
 import getopt
+import subprocess
 
 pg_connect_str = "dbname=bankapi"
 pg_conn = None
+pgp_keyserver = "keys.gnupg.net"
 
 def bail(error=None):
+    global pgp_keyserver
 
     if error is not None:
         print "Error: %s" % (error.rstrip())
@@ -25,9 +28,12 @@ def bail(error=None):
         print " send frombank tobank messagetype filename [ messagetype filename ... ]"
         print " list"
         print " read messageid"
+        print " add keyid"
         print ""
         print "Arguments:"
         print "    -d dbname     Name of database to use locally (default: bankapi)"
+        print "    -k server     Use this keyserver instead of the default when adding a bank"
+        print "                  (default: %s)" % (pgp_keyserver)
 
     sys.exit(1)
 
@@ -56,6 +62,11 @@ def process_commandline(command, argv):
             bail()
 
         read_message(argv[0])
+    elif command == 'add':
+        if len(argv) != 1:
+            bail()
+
+        add_bank_key(argv[0])
     else:
         bail('Invalid command "%s"' % (command))
 
@@ -98,18 +109,12 @@ def send_file(from_bank, to_bank, messagetype, filename):
         bail(error=e.pgerror)
 
     client = None
-    messagehub_str = None
-    messagehub_expected_port = 443
     if messagehub_proto == 'https':
         client = httplib.HTTPSConnection(messagehub_host, messagehub_port)
     else:
         client = httplib.HTTPConnection(messagehub_host, messagehub_port)
-        messagehub_expected_port = 80
 
-    if messagehub_port != messagehub_expected_port:
-        messagehub_str = "%s://%s:%s%s" % (messagehub_proto, messagehub_host, messagehub_port, messagehub_path)
-    else:
-        messagehub_str = "%s://%s%s" % (messagehub_proto, messagehub_host, messagehub_path)
+    messagehub_str = url_str(messagehub_proto, messagehub_host, messagehub_port, messagehub_path)
 
     print "Sending message %s -> %s using %s ... " % (from_bank, to_bank, messagehub_str),
     cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -204,7 +209,137 @@ def read_message(messageid):
         elif e.pgcode == 'P0003':
             bail('Message ID amibgous')
 
-        bail(error=e.pgcode)
+        bail(error="Read failed with error %s, code %s" % (e.pgerror, e.pgcode))
+
+def add_bank_key(bankid):
+    global pgp_keyserver
+    global pg_conn
+
+    key_list = None
+    try:
+        key_list = subprocess.check_output(['/usr/bin/gpg', '--list-keys', bankid])
+    except subprocess.CalledProcessError:
+        pass
+
+    import_key = True
+    if key_list is not None:
+        print "There is a local key for %s:" % (bankid)
+        print ""
+        print key_list
+        print "Use this key (y/N)? ",
+        if sys.stdin.readline().rstrip() == 'y':
+            import_key = False
+
+    if import_key:
+        import_status = subprocess.call(['/usr/bin/gpg', '--keyserver', pgp_keyserver, '--search-keys',bankid])
+
+    try:
+        key_list = subprocess.check_output(['/usr/bin/gpg', '--with-colons', '--list-keys', bankid])
+    except subprocess.CalledProcessError:
+        bail(error="No key found for %s" % (bankid))
+
+    key_lines = key_list.split('\n')
+
+    if len(key_lines) == 4:
+        subkeyid = None
+        pubkeyid = None
+        data = None
+
+
+        for line in key_lines:
+            fields = line.split(':')
+            if fields[0] == 'pub':
+                try:
+                    pubkeyid = fields[4]
+                    vfy_bankid = fields[9][:(fields[9].index(' '))]
+                    data_str =  unescape_gpg_comment(fields[9][(fields[9].index('(') + 1):(fields[9].rindex(')'))])
+                except ValueError as e:
+                    bail(error="Failed to parse description in key (%s)" % (fields[9]))
+
+                try:
+                    data = json.loads(data_str)
+                except ValueError as e:
+                    bail(error="Invalid JSON description in key (%s): %s" % (data_str, str(e)))
+
+            elif fields[0] == 'sub':
+                subkeyid = fields[4]
+
+        if subkeyid is None or pubkeyid is None:
+            bail(error='Failed to extract public, sub key ids or description from key')
+
+        try:
+            pubkey = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export', pubkeyid])
+        except subprocess.CalledProcessErrror:
+            bail(error="Could not export key %s for %s" % (pubkeyid, bankid))
+
+
+        protocol, host, port, path = None, None, None, None
+        try:
+            protocol = data['protocol']
+            host = data['host']
+            port = data['port']
+            path = data['path']
+        except KeyError as e:
+            bail(error="Key %s privides a valid JSON in the commonet, but does not provide values for protocol, host, port and path" % (pubkeyid))
+
+        print "Registering pubkey %s, subkey %s for %s using %s" % (pubkeyid, subkeyid, bankid, url_str(protocol, host, port, path))
+
+        try:
+            cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cur.execute("""SELECT Register_Bank(
+                    _BankID := %s,
+                    _Protocol := %s,
+                    _Host := %s,
+                    _Port := %s,
+                    _Path := %s)""",
+                    [bankid, protocol, host, port, path])
+
+            sqldata = cur.fetchone()
+
+            pg_conn.commit()
+        except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
+            pg_conn.rollback()
+
+            bail(error="Failed to register bank failed with error %s, code %s" % (e.pgerror, e.pgcode))
+    else:
+        bail(error='lines %i' % (len(key_lines)))
+
+
+def url_str(protocol, host, port, path=None):
+    expected_port = 80
+    if protocol == 'https':
+        expected_port = 443
+
+    url = "%s://%s" % (protocol, host)
+
+    if port != expected_port:
+        url = url + ':%i' % (port)
+
+    if path is not None:
+        url = url + path
+
+    return url
+
+def unescape_gpg_comment(comment):
+    if comment is None:
+        return None
+
+    n_comment = ''
+    ndx = comment.find('\\x')
+    while ndx > -1:
+
+        hexstr = None
+        if ndx > 0:
+            n_comment = n_comment + comment[:ndx]
+        hexstr = comment[(ndx+2):(ndx+4)]
+        comment = comment[(ndx+4):]
+        n_comment = n_comment + chr(int(hexstr, 16))
+
+        ndx = comment.find('\\x')
+
+    return n_comment + comment
+
+
 
 
 if len(sys.argv) < 2:
@@ -217,6 +352,8 @@ try:
     for o, a in opts:
         if o == '-d':
             pg_connect_str = "dbname=%s" % (a)
+        if o == '-k':
+            pgp_keyserver = a
         else:
             bail()
 except getopt.GetoptError as e:
