@@ -133,7 +133,6 @@ for filename in msg_filenames:
 
     request_str = json.dumps(request)
     response = None
-    print request_str
 
     try:
         client.request('POST', messagehub_path, request_str, headers)
