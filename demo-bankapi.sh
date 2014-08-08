@@ -21,9 +21,16 @@ echo 'This is another secret message from TESTBANK001 to TESTBANK002' | \
 # databases should really be the same as we update and keep all the message
 # information in sync between the two. 
 echo "List messages in the system of TESTBANK001"
-    /usr/bin/bankapi list -d TESTBANK001
+/usr/bin/bankapi list -d TESTBANK001
 
 echo "List messages in the system of TESTBANK002"
-    /usr/bin/bankapi list -d TESTBANK002
+/usr/bin/bankapi list -d TESTBANK002
 
 echo "The two lists of messages should be identical (apart from minor differences in timestamps)"
+
+
+# Now fetch the last message in the list from TESTBANK002 database and display it using read
+messagerow=$(/usr/bin/bankapi list -d TESTBANK002 | tail -n2 | head -n1)
+echo "Displaying the last message in TESTBANK002: $messagerow"
+messageid=$(echo "$messagerow" | cut -c21-30)
+/usr/bin/bankapi read "$messageid"
