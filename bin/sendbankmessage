@@ -14,30 +14,24 @@ import getopt
 pg_connect_str = "dbname=bankapi"
 pg_conn = None
 
-messagehub = "http://localhost"
-
 def bail(error=None):
 
     if error is not None:
         print "Error: %s" % (error.rstrip())
     else:
-        print "Usage: %s [-m messagehub] [-d dbname] FROMBANK TOBANK filename [ filename ... ]" % (sys.argv[0])
+        print "Usage: %s [-d dbname] FROMBANK TOBANK filename [ filename ... ]" % (sys.argv[0])
         print ""
         print "To read a message from stdin, you can use - as the filename"
         print ""
-        print "    -m messagehub Protocol and hostname of host acting as messagehub"
-        print "                  (default: http://localhost)"
         print "    -d dbname     Name of database to use locally (default: bankapi)"
 
     sys.exit(1)
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'd:m:')
+    opts, args = getopt.getopt(sys.argv[1:], 'd:')
     for o, a in opts:
         if o == '-d':
             pg_connect_str = "dbname=%s" % (a)
-        elif o == '-m':
-            messagehub = a
         else:
             bail()
 except getopt.GetoptError as e:
@@ -63,7 +57,6 @@ for filename in msg_filenames:
     else:
         try:
             fh = open(filename, 'r')
-            print fh
         except IOError as e:
             bail(error='Could not open file %s: %s' % (filename, e))
 
@@ -76,7 +69,38 @@ for filename in msg_filenames:
     if messagetext is None or len(messagetext) == 0:
         bail(error='No message text in file %s' % (filename))
 
-    print "Sending message %s -> %s" % (from_bank, to_bank)
+    cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    messagehub_host, messagehub_port, messagehub_proto, messagehub_path = None, None, None, None
+    try:
+        cur.execute("SELECT Protocol, Host, Port, Path FROM Banks WHERE BankID = %s", 
+            [to_bank]);
+
+        sqldata = cur.fetchone()
+        messagehub_proto = sqldata['protocol']
+        messagehub_host = sqldata['host']
+        messagehub_port = sqldata['port']
+        messagehub_path = sqldata['path']
+        pg_conn.commit()
+    except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
+        pg_conn.rollback()
+        bail(error=e.pgerror)
+
+
+    client = None
+    messagehub_str = None
+    messagehub_expected_port = 443
+    if messagehub_proto == 'https':
+        client = httplib.HTTPSConnection(messagehub_host, messagehub_port)
+    else:
+        client = httplib.HTTPConnection(messagehub_host, messagehub_port)
+        messagehub_expected_port = 80
+
+    if messagehub_port != messagehub_expected_port:
+        messagehub_str = "%s://%s:%s%s" % (messagehub_proto, messagehub_host, messagehub_port, messagehub_path)
+    else:
+        messagehub_str = "%s://%s%s" % (messagehub_proto, messagehub_host, messagehub_path)
+
+    print "Sending message %s -> %s using %s ... " % (from_bank, to_bank, messagehub_str),
     cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     messageid = None
 
@@ -96,15 +120,6 @@ for filename in msg_filenames:
         pg_conn.rollback()
         bail(error=e.pgerror)
 
-    print " Delivering message via %s " % (messagehub),
-
-    client = None
-
-    if messagehub[:5] == 'https':
-        client = httplib.HTTPSConnection(messagehub[8:])
-    else:
-        client = httplib.HTTPConnection(messagehub[7:])
-
     request = {
             "version": "1.1",
             "method": "receive_message", 
@@ -118,17 +133,19 @@ for filename in msg_filenames:
 
     request_str = json.dumps(request)
     response = None
+    print request_str
 
     try:
-        client.request('POST', '/bankapi', request_str, headers)
+        client.request('POST', messagehub_path, request_str, headers)
         response = client.getresponse()
     except (socket.gaierror, socket.error) as e:
-        bail(error="Could not connect to %s: %s" % (messagehub, str(e)))
+        bail(error="Could not connect to %s: %s" % (messagehub_str, str(e)))
 
     print " %s %s" % (response.status, response.reason)
 
     if response.status == 200:
         response_body = response.read()
+        response_json = None
         try:
             response_json = json.loads(response_body)
 
@@ -145,7 +162,7 @@ for filename in msg_filenames:
             print " Message delivered to %s (from %s) %s" % (sqldata['tobankid'], sqldata['frombankid'], sqldata['fileid'])
             pg_conn.commit()
         except KeyError as e:
-            if response_json is not None and reponse_json.get('error'):
+            if response_json is not None and response_json.get('error'):
                 bail(error="Delivery failed with error: %s" % (response_json['error']))
         except ValueError as e:
             bail(error="Failed to process response (%s)" % (response_body))
