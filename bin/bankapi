@@ -19,37 +19,41 @@ def bail(error=None):
     if error is not None:
         print "Error: %s" % (error.rstrip())
     else:
-        print "Usage: %s [-d dbname] FROMBANK TOBANK filename [ filename ... ]" % (sys.argv[0])
+        print "Usage: %s [-d dbname] <command> <args>" % (sys.argv[0])
         print ""
-        print "To read a message from stdin, you can use - as the filename"
+        print "Commands:"
+        print " send FROMBANK TOBANK filetype filename [ filetype filename ... ]"
         print ""
+        print "Arguments:"
         print "    -d dbname     Name of database to use locally (default: bankapi)"
 
     sys.exit(1)
 
-try:
-    opts, args = getopt.getopt(sys.argv[1:], 'd:')
-    for o, a in opts:
-        if o == '-d':
-            pg_connect_str = "dbname=%s" % (a)
-        else:
+def process_commandline(command, argv):
+    pprint.pprint(argv)
+
+    if command == 'send':
+            # We need even pairs with filetype/filename for sending
+        if len(argv) < 4 or len(argv) % 2:
             bail()
-except getopt.GetoptError as e:
-    bail()
-    
-if len(args) < 3:
-    bail()
 
-from_bank = args[0]
-to_bank = args[1]
-msg_filenames = args[2:]
+        frombank = argv.pop(0)
+        tobank = argv.pop(0)
+        files = list()
 
-try:
-    pg_conn = psycopg2.connect(pg_connect_str)
-except psycopg2.OperationalError as e:
-    bail(error='Failed to connect to database: %s' % (e))
+        while argv:
+            files.append({
+                'filetype': argv.pop(0),
+                'filename': argv.pop(0)
+                })
 
-for filename in msg_filenames:
+        pprint.pprint(files)
+        for filedata in files:
+            send_file(frombank, tobank, filedata['filetype'], filedata['filename'])
+    else:
+        bail('Invalid command "%s"' % (command))
+
+def send_file(from_bank, to_bank, filetype, filename):
     fh = None
     if filename == '-':
         fh = sys.stdin
@@ -85,7 +89,6 @@ for filename in msg_filenames:
         pg_conn.rollback()
         bail(error=e.pgerror)
 
-
     client = None
     messagehub_str = None
     messagehub_expected_port = 443
@@ -120,22 +123,14 @@ for filename in msg_filenames:
         pg_conn.rollback()
         bail(error=e.pgerror)
 
-    request = {
-            "version": "1.1",
-            "method": "receive_message", 
-            "params": {
-                "ciphertext": ciphertext
-                }
-            }
-    headers = {
-            "Content-Type": "application/json"
-            }
-
-    request_str = json.dumps(request)
     response = None
+    request = ciphertext
+    headers = {
+            "Content-Type": "text/plain"
+            }
 
     try:
-        client.request('POST', messagehub_path, request_str, headers)
+        client.request('POST', messagehub_path, request, headers)
         response = client.getresponse()
     except (socket.gaierror, socket.error) as e:
         bail(error="Could not connect to %s: %s" % (messagehub_str, str(e)))
@@ -144,32 +139,44 @@ for filename in msg_filenames:
 
     if response.status == 200:
         response_body = response.read()
-        response_json = None
         try:
-            response_json = json.loads(response_body)
-
-            delivery_reciept = response_json['result']['deliveryreceipt']
-
             print " Saving delivery recieipt" 
 
             cur.execute("""SELECT FileID, FromBankID, ToBankID FROM Decode_Delivery_Receipt(
                 _DeliveryReceipt := %s
                 )""",
-                [delivery_reciept])
+                [response_body])
 
             sqldata = cur.fetchone()
             print " Message delivered to %s (from %s) %s" % (sqldata['tobankid'], sqldata['frombankid'], sqldata['fileid'])
             pg_conn.commit()
-        except KeyError as e:
-            if response_json is not None and response_json.get('error'):
-                bail(error="Delivery failed with error: %s" % (response_json['error']))
-        except ValueError as e:
-            bail(error="Failed to process response (%s)" % (response_body))
         except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
             pg_conn.rollback()
-            bail(error=e.pgerror)
+            bail(error="Failed to save delivery receipt: error=%s, code=%s, diag=%s" % (e.pgerror, e.pgcode, e.diag))
     else:
-        pass
+        bail(error="Failure")
+
+if len(sys.argv) < 2:
+    bail()
+
+command = sys.argv.pop(1)
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], 'd:')
+    for o, a in opts:
+        if o == '-d':
+            pg_connect_str = "dbname=%s" % (a)
+        else:
+            bail()
+except getopt.GetoptError as e:
+    bail()
+    
+try:
+    pg_conn = psycopg2.connect(pg_connect_str)
+except psycopg2.OperationalError as e:
+    bail(error='Failed to connect to database: %s' % (e))
+
+process_commandline(command, args)
 
 sys.exit(0)
 
