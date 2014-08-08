@@ -1,5 +1,6 @@
 CREATE TABLE Messages (
 MessageID text not null,
+MessageType text not null,
 FileID text not null,
 FromBankID text not null,
 ToBankID text not null,
