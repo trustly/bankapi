@@ -1,6 +1,10 @@
 # bankapi
 
+## Protocol design
+
 ![layout](https://raw.githubusercontent.com/trustly/bankapi/master/doc/BankAPI%20Protocol%20Design.png)
+
+## System design
 
 ![layout](https://raw.githubusercontent.com/trustly/bankapi/master/doc/BankAPI%20System%20Design.png)
 
