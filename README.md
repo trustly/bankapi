@@ -51,7 +51,7 @@ details specific to OpenPGP are documented in
    **SHOULD** only sign a message using a single key.  The hash algorithm used
    for signatures **MUST** be SHA-512.
 
-8. The _ASCII Armor_ must be valid UTF-8.
+8. The _ASCII Armor_, including _Armor Headers_, **MUST** be valid UTF-8.
 
 ## System design
 
