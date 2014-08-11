@@ -1,0 +1,530 @@
+diff --git a/Makefile b/Makefile
+index dadec95..61dd575 100644
+--- a/Makefile
++++ b/Makefile
+@@ -22,11 +22,11 @@ SRCS		= pgcrypto.c px.c px-hmac.c px-crypt.c \
+ 		pgp-pubdec.c pgp-pubenc.c pgp-pubkey.c pgp-s2k.c \
+ 		pgp-pgsql.c
+ 
+-MODULE_big	= pgcrypto
++MODULE_big	= pgcrypto_openpgp
+ OBJS		= $(SRCS:.c=.o)
+ 
+-EXTENSION = pgcrypto
+-DATA = pgcrypto--1.0.sql pgcrypto--unpackaged--1.0.sql
++EXTENSION = pgcrypto_openpgp
++DATA = pgcrypto_openpgp--1.2.sql
+ 
+ REGRESS = init md5 sha1 hmac-md5 hmac-sha1 blowfish rijndael \
+ 	$(CF_TESTS) \
+diff --git a/expected/init.out b/expected/init.out
+index bd8f8e1..71bb177 100644
+--- a/expected/init.out
++++ b/expected/init.out
+@@ -1,7 +1,7 @@
+ --
+--- init pgcrypto
++-- init pgcrypto_openpgp
+ --
+-CREATE EXTENSION pgcrypto;
++CREATE EXTENSION pgcrypto_openpgp;
+ -- ensure consistent test output regardless of the default bytea format
+ SET bytea_output TO escape;
+ -- check for encoding fn's
+diff --git a/pgcrypto--1.0.sql b/pgcrypto--1.0.sql
+deleted file mode 100644
+index 347825e..0000000
+--- a/pgcrypto--1.0.sql
++++ /dev/null
+@@ -1,202 +0,0 @@
+-/* contrib/pgcrypto/pgcrypto--1.0.sql */
+-
+--- complain if script is sourced in psql, rather than via CREATE EXTENSION
+-\echo Use "CREATE EXTENSION pgcrypto" to load this file. \quit
+-
+-CREATE FUNCTION digest(text, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pg_digest'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION digest(bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pg_digest'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION hmac(text, text, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pg_hmac'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION hmac(bytea, bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pg_hmac'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION crypt(text, text)
+-RETURNS text
+-AS 'MODULE_PATHNAME', 'pg_crypt'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION gen_salt(text)
+-RETURNS text
+-AS 'MODULE_PATHNAME', 'pg_gen_salt'
+-LANGUAGE C VOLATILE STRICT;
+-
+-CREATE FUNCTION gen_salt(text, int4)
+-RETURNS text
+-AS 'MODULE_PATHNAME', 'pg_gen_salt_rounds'
+-LANGUAGE C VOLATILE STRICT;
+-
+-CREATE FUNCTION encrypt(bytea, bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pg_encrypt'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION decrypt(bytea, bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pg_decrypt'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION encrypt_iv(bytea, bytea, bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pg_encrypt_iv'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION decrypt_iv(bytea, bytea, bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pg_decrypt_iv'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION gen_random_bytes(int4)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pg_random_bytes'
+-LANGUAGE C VOLATILE STRICT;
+-
+---
+--- pgp_sym_encrypt(data, key)
+---
+-CREATE FUNCTION pgp_sym_encrypt(text, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_sym_encrypt_text'
+-LANGUAGE C STRICT;
+-
+-CREATE FUNCTION pgp_sym_encrypt_bytea(bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_sym_encrypt_bytea'
+-LANGUAGE C STRICT;
+-
+---
+--- pgp_sym_encrypt(data, key, args)
+---
+-CREATE FUNCTION pgp_sym_encrypt(text, text, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_sym_encrypt_text'
+-LANGUAGE C STRICT;
+-
+-CREATE FUNCTION pgp_sym_encrypt_bytea(bytea, text, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_sym_encrypt_bytea'
+-LANGUAGE C STRICT;
+-
+---
+--- pgp_sym_decrypt(data, key)
+---
+-CREATE FUNCTION pgp_sym_decrypt(bytea, text)
+-RETURNS text
+-AS 'MODULE_PATHNAME', 'pgp_sym_decrypt_text'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION pgp_sym_decrypt_bytea(bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_sym_decrypt_bytea'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+---
+--- pgp_sym_decrypt(data, key, args)
+---
+-CREATE FUNCTION pgp_sym_decrypt(bytea, text, text)
+-RETURNS text
+-AS 'MODULE_PATHNAME', 'pgp_sym_decrypt_text'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION pgp_sym_decrypt_bytea(bytea, text, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_sym_decrypt_bytea'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+---
+--- pgp_pub_encrypt(data, key)
+---
+-CREATE FUNCTION pgp_pub_encrypt(text, bytea)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_pub_encrypt_text'
+-LANGUAGE C STRICT;
+-
+-CREATE FUNCTION pgp_pub_encrypt_bytea(bytea, bytea)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_pub_encrypt_bytea'
+-LANGUAGE C STRICT;
+-
+---
+--- pgp_pub_encrypt(data, key, args)
+---
+-CREATE FUNCTION pgp_pub_encrypt(text, bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_pub_encrypt_text'
+-LANGUAGE C STRICT;
+-
+-CREATE FUNCTION pgp_pub_encrypt_bytea(bytea, bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_pub_encrypt_bytea'
+-LANGUAGE C STRICT;
+-
+---
+--- pgp_pub_decrypt(data, key)
+---
+-CREATE FUNCTION pgp_pub_decrypt(bytea, bytea)
+-RETURNS text
+-AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_text'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION pgp_pub_decrypt_bytea(bytea, bytea)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_bytea'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+---
+--- pgp_pub_decrypt(data, key, psw)
+---
+-CREATE FUNCTION pgp_pub_decrypt(bytea, bytea, text)
+-RETURNS text
+-AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_text'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION pgp_pub_decrypt_bytea(bytea, bytea, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_bytea'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+---
+--- pgp_pub_decrypt(data, key, psw, arg)
+---
+-CREATE FUNCTION pgp_pub_decrypt(bytea, bytea, text, text)
+-RETURNS text
+-AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_text'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION pgp_pub_decrypt_bytea(bytea, bytea, text, text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_bytea'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+---
+--- PGP key ID
+---
+-CREATE FUNCTION pgp_key_id(bytea)
+-RETURNS text
+-AS 'MODULE_PATHNAME', 'pgp_key_id_w'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+---
+--- pgp armor
+---
+-CREATE FUNCTION armor(bytea)
+-RETURNS text
+-AS 'MODULE_PATHNAME', 'pg_armor'
+-LANGUAGE C IMMUTABLE STRICT;
+-
+-CREATE FUNCTION dearmor(text)
+-RETURNS bytea
+-AS 'MODULE_PATHNAME', 'pg_dearmor'
+-LANGUAGE C IMMUTABLE STRICT;
+diff --git a/pgcrypto--unpackaged--1.0.sql b/pgcrypto--unpackaged--1.0.sql
+deleted file mode 100644
+index fe8d4c4..0000000
+--- a/pgcrypto--unpackaged--1.0.sql
++++ /dev/null
+@@ -1,38 +0,0 @@
+-/* contrib/pgcrypto/pgcrypto--unpackaged--1.0.sql */
+-
+--- complain if script is sourced in psql, rather than via CREATE EXTENSION
+-\echo Use "CREATE EXTENSION pgcrypto" to load this file. \quit
+-
+-ALTER EXTENSION pgcrypto ADD function digest(text,text);
+-ALTER EXTENSION pgcrypto ADD function digest(bytea,text);
+-ALTER EXTENSION pgcrypto ADD function hmac(text,text,text);
+-ALTER EXTENSION pgcrypto ADD function hmac(bytea,bytea,text);
+-ALTER EXTENSION pgcrypto ADD function crypt(text,text);
+-ALTER EXTENSION pgcrypto ADD function gen_salt(text);
+-ALTER EXTENSION pgcrypto ADD function gen_salt(text,integer);
+-ALTER EXTENSION pgcrypto ADD function encrypt(bytea,bytea,text);
+-ALTER EXTENSION pgcrypto ADD function decrypt(bytea,bytea,text);
+-ALTER EXTENSION pgcrypto ADD function encrypt_iv(bytea,bytea,bytea,text);
+-ALTER EXTENSION pgcrypto ADD function decrypt_iv(bytea,bytea,bytea,text);
+-ALTER EXTENSION pgcrypto ADD function gen_random_bytes(integer);
+-ALTER EXTENSION pgcrypto ADD function pgp_sym_encrypt(text,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_sym_encrypt_bytea(bytea,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_sym_encrypt(text,text,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_sym_encrypt_bytea(bytea,text,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_sym_decrypt(bytea,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_sym_decrypt_bytea(bytea,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_sym_decrypt(bytea,text,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_sym_decrypt_bytea(bytea,text,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_pub_encrypt(text,bytea);
+-ALTER EXTENSION pgcrypto ADD function pgp_pub_encrypt_bytea(bytea,bytea);
+-ALTER EXTENSION pgcrypto ADD function pgp_pub_encrypt(text,bytea,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_pub_encrypt_bytea(bytea,bytea,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_pub_decrypt(bytea,bytea);
+-ALTER EXTENSION pgcrypto ADD function pgp_pub_decrypt_bytea(bytea,bytea);
+-ALTER EXTENSION pgcrypto ADD function pgp_pub_decrypt(bytea,bytea,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_pub_decrypt_bytea(bytea,bytea,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_pub_decrypt(bytea,bytea,text,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_pub_decrypt_bytea(bytea,bytea,text,text);
+-ALTER EXTENSION pgcrypto ADD function pgp_key_id(bytea);
+-ALTER EXTENSION pgcrypto ADD function armor(bytea);
+-ALTER EXTENSION pgcrypto ADD function dearmor(text);
+diff --git a/pgcrypto.control b/pgcrypto.control
+deleted file mode 100644
+index 8375cf9..0000000
+--- a/pgcrypto.control
++++ /dev/null
+@@ -1,5 +0,0 @@
+-# pgcrypto extension
+-comment = 'cryptographic functions'
+-default_version = '1.0'
+-module_pathname = '$libdir/pgcrypto'
+-relocatable = true
+diff --git a/pgcrypto_openpgp--1.2.sql b/pgcrypto_openpgp--1.2.sql
+new file mode 100644
+index 0000000..8d794d3
+--- /dev/null
++++ b/pgcrypto_openpgp--1.2.sql
+@@ -0,0 +1,202 @@
++/* pgcrypto_openpgp/pgcrypto_openpgp--1.2.sql */
++
++-- complain if script is sourced in psql, rather than via CREATE EXTENSION
++\echo Use "CREATE EXTENSION pgcrypto_openpgp" to load this file. \quit
++
++CREATE FUNCTION digest(text, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pg_digest'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION digest(bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pg_digest'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION hmac(text, text, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pg_hmac'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION hmac(bytea, bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pg_hmac'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION crypt(text, text)
++RETURNS text
++AS 'MODULE_PATHNAME', 'pg_crypt'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION gen_salt(text)
++RETURNS text
++AS 'MODULE_PATHNAME', 'pg_gen_salt'
++LANGUAGE C VOLATILE STRICT;
++
++CREATE FUNCTION gen_salt(text, int4)
++RETURNS text
++AS 'MODULE_PATHNAME', 'pg_gen_salt_rounds'
++LANGUAGE C VOLATILE STRICT;
++
++CREATE FUNCTION encrypt(bytea, bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pg_encrypt'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION decrypt(bytea, bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pg_decrypt'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION encrypt_iv(bytea, bytea, bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pg_encrypt_iv'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION decrypt_iv(bytea, bytea, bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pg_decrypt_iv'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION gen_random_bytes(int4)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pg_random_bytes'
++LANGUAGE C VOLATILE STRICT;
++
++--
++-- pgp_sym_encrypt(data, key)
++--
++CREATE FUNCTION pgp_sym_encrypt(text, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_sym_encrypt_text'
++LANGUAGE C STRICT;
++
++CREATE FUNCTION pgp_sym_encrypt_bytea(bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_sym_encrypt_bytea'
++LANGUAGE C STRICT;
++
++--
++-- pgp_sym_encrypt(data, key, args)
++--
++CREATE FUNCTION pgp_sym_encrypt(text, text, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_sym_encrypt_text'
++LANGUAGE C STRICT;
++
++CREATE FUNCTION pgp_sym_encrypt_bytea(bytea, text, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_sym_encrypt_bytea'
++LANGUAGE C STRICT;
++
++--
++-- pgp_sym_decrypt(data, key)
++--
++CREATE FUNCTION pgp_sym_decrypt(bytea, text)
++RETURNS text
++AS 'MODULE_PATHNAME', 'pgp_sym_decrypt_text'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION pgp_sym_decrypt_bytea(bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_sym_decrypt_bytea'
++LANGUAGE C IMMUTABLE STRICT;
++
++--
++-- pgp_sym_decrypt(data, key, args)
++--
++CREATE FUNCTION pgp_sym_decrypt(bytea, text, text)
++RETURNS text
++AS 'MODULE_PATHNAME', 'pgp_sym_decrypt_text'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION pgp_sym_decrypt_bytea(bytea, text, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_sym_decrypt_bytea'
++LANGUAGE C IMMUTABLE STRICT;
++
++--
++-- pgp_pub_encrypt(data, key)
++--
++CREATE FUNCTION pgp_pub_encrypt(text, bytea)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_pub_encrypt_text'
++LANGUAGE C STRICT;
++
++CREATE FUNCTION pgp_pub_encrypt_bytea(bytea, bytea)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_pub_encrypt_bytea'
++LANGUAGE C STRICT;
++
++--
++-- pgp_pub_encrypt(data, key, args)
++--
++CREATE FUNCTION pgp_pub_encrypt(text, bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_pub_encrypt_text'
++LANGUAGE C STRICT;
++
++CREATE FUNCTION pgp_pub_encrypt_bytea(bytea, bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_pub_encrypt_bytea'
++LANGUAGE C STRICT;
++
++--
++-- pgp_pub_decrypt(data, key)
++--
++CREATE FUNCTION pgp_pub_decrypt(bytea, bytea)
++RETURNS text
++AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_text'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION pgp_pub_decrypt_bytea(bytea, bytea)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_bytea'
++LANGUAGE C IMMUTABLE STRICT;
++
++--
++-- pgp_pub_decrypt(data, key, psw)
++--
++CREATE FUNCTION pgp_pub_decrypt(bytea, bytea, text)
++RETURNS text
++AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_text'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION pgp_pub_decrypt_bytea(bytea, bytea, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_bytea'
++LANGUAGE C IMMUTABLE STRICT;
++
++--
++-- pgp_pub_decrypt(data, key, psw, arg)
++--
++CREATE FUNCTION pgp_pub_decrypt(bytea, bytea, text, text)
++RETURNS text
++AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_text'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION pgp_pub_decrypt_bytea(bytea, bytea, text, text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pgp_pub_decrypt_bytea'
++LANGUAGE C IMMUTABLE STRICT;
++
++--
++-- PGP key ID
++--
++CREATE FUNCTION pgp_key_id(bytea)
++RETURNS text
++AS 'MODULE_PATHNAME', 'pgp_key_id_w'
++LANGUAGE C IMMUTABLE STRICT;
++
++--
++-- pgp armor
++--
++CREATE FUNCTION armor(bytea)
++RETURNS text
++AS 'MODULE_PATHNAME', 'pg_armor'
++LANGUAGE C IMMUTABLE STRICT;
++
++CREATE FUNCTION dearmor(text)
++RETURNS bytea
++AS 'MODULE_PATHNAME', 'pg_dearmor'
++LANGUAGE C IMMUTABLE STRICT;
+diff --git a/pgcrypto_openpgp.control b/pgcrypto_openpgp.control
+new file mode 100644
+index 0000000..48fe8ce
+--- /dev/null
++++ b/pgcrypto_openpgp.control
+@@ -0,0 +1,5 @@
++# pgcrypto_openpgp extension
++comment = 'cryptographic functions'
++default_version = '1.2'
++module_pathname = '$libdir/pgcrypto_openpgp'
++relocatable = true
+diff --git a/sql/init.sql b/sql/init.sql
+index 5c3d100..f7117be 100644
+--- a/sql/init.sql
++++ b/sql/init.sql
+@@ -1,8 +1,8 @@
+ --
+--- init pgcrypto
++-- init pgcrypto_openpgp
+ --
+ 
+-CREATE EXTENSION pgcrypto;
++CREATE EXTENSION pgcrypto_openpgp;
+ 
+ -- ensure consistent test output regardless of the default bytea format
+ SET bytea_output TO escape;

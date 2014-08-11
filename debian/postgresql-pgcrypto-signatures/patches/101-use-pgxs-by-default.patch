@@ -1,0 +1,13 @@
+diff --git a/Makefile b/Makefile
+index 61dd575..ccf1168 100644
+--- a/Makefile
++++ b/Makefile
+@@ -36,7 +36,7 @@ REGRESS = init md5 sha1 hmac-md5 hmac-sha1 blowfish rijndael \
+ 
+ EXTRA_CLEAN = gen-rtab
+ 
+-ifdef USE_PGXS
++ifndef NO_PGXS
+ PG_CONFIG = pg_config
+ PGXS := $(shell $(PG_CONFIG) --pgxs)
+ include $(PGXS)
