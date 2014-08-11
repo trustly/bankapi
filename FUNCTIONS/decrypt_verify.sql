@@ -13,5 +13,5 @@ SELECT
 FROM Keys AS EncryptionKey,
      Keys AS SignatureKey
 WHERE EncryptionKey.SubKeyID = pgp_key_id($1)
-AND   SignatureKey.MainKeyID = (SELECT KeyID FROM pgp_pub_signature_keys($1, EncryptionKey.SecretKeyring))
+AND   SignatureKey.MainKeyID = (SELECT KeyID FROM pgp_pub_signatures($1, EncryptionKey.SecretKeyring))
 $BODY$ LANGUAGE sql VOLATILE;

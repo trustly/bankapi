@@ -1,4 +1,4 @@
-Provides: postgresql-pgcrypto-signatures
+Provides: postgresql-pgcrypto-openpgp
 Section: database
 Priority: optional
 Maintainer: Per Lejontand <per.lejontand@trustly.com>

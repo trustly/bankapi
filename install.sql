@@ -1,4 +1,3 @@
-CREATE EXTENSION pgcrypto;
 CREATE EXTENSION pgcrypto_openpgp;
 
 \i TABLES/banks.sql
