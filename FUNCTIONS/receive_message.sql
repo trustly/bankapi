@@ -47,8 +47,10 @@ IF _DeliveryReceipt IS NULL THEN
         _SignatureKeyID  := ToBankKey.MainKeyID
     ) FROM Keys AS FromBankKey,
            Keys AS ToBankKey
-    WHERE FromBankKey.BankID = _FromBankID
-    AND   ToBankKey.BankID   = _ToBankID;
+    WHERE FromBankKey.BankID     = _FromBankID
+    AND   FromBankKey.PrimaryKey IS TRUE
+    AND   ToBankKey.BankID       = _ToBankID
+    AND   ToBankKey.PrimaryKey   IS TRUE;
     IF _DeliveryReceipt IS NULL THEN
         RAISE EXCEPTION 'ERROR_ENCRYPT_SIGN_FAILED FileID % EncryptionKeyID % SignatureKeyID %', _FileID, _SignatureKeyID, _EncryptionKeyID;
     END IF;
