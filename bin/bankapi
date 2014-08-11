@@ -210,12 +210,12 @@ def read_message(messageid):
 
         bail(error="Read failed with error %s, code %s" % (e.pgerror, e.pgcode))
 
-def gpg_list_key_data(bankid, desc, secret=None):
+def gpg_list_key_data(keyid, desc, secret=None):
     try:
         if secret is not None:
-            key_list = subprocess.check_output(['/usr/bin/gpg', '--with-fingerprint', '--with-colons', '--list-secret-keys', bankid])
+            key_list = subprocess.check_output(['/usr/bin/gpg', '--with-fingerprint', '--with-colons', '--list-secret-keys', keyid])
         else:
-            key_list = subprocess.check_output(['/usr/bin/gpg', '--with-fingerprint', '--with-colons', '--list-keys', bankid])
+            key_list = subprocess.check_output(['/usr/bin/gpg', '--with-fingerprint', '--with-colons', '--list-keys', keyid])
     except subprocess.CalledProcessError:
         return None
 
@@ -254,12 +254,14 @@ def gpg_export_key_data(keyid, desc, secret=None):
 
     try:
         if secret is not None:
-            key = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export-secret-key', keyid])
+            key = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export-secret-keys', keyid])
         else:
             key = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export', keyid])
 
+        return key
     except subprocess.CalledProcessErrror:
         bail(error="Could not export %s key %s" % (desc, keyid))
+
 
 def fpr_str(fpr):
     return ' '.join([fpr[i:i+4] for i in range(0, len(fpr), 4)])
@@ -278,27 +280,32 @@ def add_bank_key(bankid):
             bail(error='Bank %s already exists' % (bankid))
     except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
         pg_conn.rollback()
-        bail(error="Register bank failed with error %s, code %s" % (e.pgerror, e.pgcode))
+        bail(error="Querying configured banks failes with error %s, code %s" % (e.pgerror, e.pgcode))
 
-    key_list = None
-    try:
-        key_list = subprocess.check_output(['/usr/bin/gpg', '--list-keys', bankid])
-    except subprocess.CalledProcessError:
-        pass
 
-    import_key = True
-    if key_list is not None:
-        print "There is a local key for %s:" % (bankid)
-        print ""
-        print key_list
-        print "Use this key (y/N)? ",
-        if sys.stdin.readline().rstrip() == 'y':
-            import_key = False
+    use_keyid = None
 
-    if import_key:
-        import_status = subprocess.call(['/usr/bin/gpg', '--keyserver', pgp_keyserver, '--search-keys',bankid])
+    while use_keyid is None:
+        key_list = None
+        try:
+            key_list = subprocess.check_output(['/usr/bin/gpg', '--list-keys', bankid])
+        except subprocess.CalledProcessError:
+            pass
 
-    pubkey = gpg_list_key_data(bankid, "Public key")
+        import_key = True
+        if key_list is not None:
+            print "There are local keys matching search for %s:" % (bankid)
+            print ""
+            print key_list
+            print "Enter key id of key to use, blank to search keyserver:"
+            use_keyid = sys.stdin.readline().rstrip()
+            if use_keyid != '':
+                import_key = False
+
+        if import_key:
+            import_status = subprocess.call(['/usr/bin/gpg', '--keyserver', pgp_keyserver, '--search-keys',bankid])
+
+    pubkey = gpg_list_key_data(use_keyid, "Public key")
 
     if pubkey is None:
         bail(error='Could not find public key information for bank %s' % (bankid))
@@ -311,7 +318,7 @@ def add_bank_key(bankid):
             pubkey['pub']['comment'].get('path') is None):
             bail(error="Found public key for %s (key %s) and it  privides a valid JSON in the comment, but does not provide values for protocol, host, port and path" % (bankid, pubkey['pub']['keyid']))
 
-    print "Found publickey for %s with fingerprint %s" % (bankid, fpr_str(pubkey['fpr']))
+    print "Found publickey %s for %s with fingerprint %s" % (use_keyid, bankid, fpr_str(pubkey['fpr']))
     print ""
     print "Use this key (y/N)? ",
     if sys.stdin.readline().rstrip() != 'y':
@@ -319,10 +326,11 @@ def add_bank_key(bankid):
 
     pubkey_armor = gpg_export_key_data(pubkey['pub']['keyid'], "Public key for %s" % (bankid))
 
-    print "Registering bank %s with pubkey %s, subkey %s using %s" % (bankid, pubkey['pub']['keyid'], pubkey['sub']['keyid'], url_str(pubkey['pub']['comment']['protocol'],
+    print " - Registering bank %s with pubkey %s, subkey %s using %s" % (bankid, pubkey['pub']['keyid'], pubkey['sub']['keyid'], url_str(pubkey['pub']['comment']['protocol'],
         pubkey['pub']['comment']['host'], pubkey['pub']['comment']['port'], pubkey['pub']['comment']['path']))
 
-    seckey = gpg_list_key_data(bankid, "Secret key", secret=True)
+    seckey_armor = None
+    seckey = gpg_list_key_data(use_keyid, "Secret key", secret=True)
     if seckey is not None:
         if seckey.get('sec') is None:
             bail(error='Found secret key for %s (key %s), however failed to extract information from gpg regarding the key')
@@ -330,9 +338,9 @@ def add_bank_key(bankid):
         if pubkey['fpr'] != seckey['fpr']:
             bail(error='Found secret key for %s (key %s), however the fingerprint for this key does not match the fingerprint for the public key (%s != %s)' % (fpr_str(pubkey['fpr']), fpr_str(seckey['fpr'])))
 
-        seckey_armor = gpg_export_key_data(seckey['sec']['keyid'], "Secret key for %s" % (bankid))
+        seckey_armor = gpg_export_key_data(seckey['sec']['keyid'], "Secret key for %s" % (bankid), True)
 
-        print "Found matching secret key for bank %s, adding it" % (bankid)
+        print " - Found matching secret key for bank %s, adding it" % (bankid)
 
     try:
         cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -344,7 +352,6 @@ def add_bank_key(bankid):
                 _Path := %s)""",
                 [bankid, pubkey['pub']['comment']['protocol'], pubkey['pub']['comment']['host'], pubkey['pub']['comment']['port'], pubkey['pub']['comment']['path']])
         sqldata = cur.fetchone()
-        pg_conn.commit()
 
         cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cur.execute("""SELECT Register_Public_Keyring(
@@ -352,14 +359,15 @@ def add_bank_key(bankid):
                 _PublicKeyring := %s)""",
                 [bankid, pubkey_armor])
         sqldata = cur.fetchone()
-        pg_conn.commit()
 
-        cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cur.execute("""SELECT Register_Secret_Keyring(
-                _BankID := %s,
-                _SecretKeyring := %s)""",
-                [bankid, seckey_armor])
-        sqldata = cur.fetchone()
+        if seckey_armor is not None:
+            cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cur.execute("""SELECT Register_Secret_Keyring(
+                    _BankID := %s,
+                    _SecretKeyring := %s)""",
+                    [bankid, seckey_armor])
+            sqldata = cur.fetchone()
+
         pg_conn.commit()
     except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
         pg_conn.rollback()
@@ -399,8 +407,6 @@ def unescape_gpg_comment(comment):
         ndx = comment.find('\\x')
 
     return n_comment + comment
-
-
 
 
 if len(sys.argv) < 2:
