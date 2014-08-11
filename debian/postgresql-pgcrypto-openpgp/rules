@@ -2,9 +2,9 @@
 
 VERSION=1.2-1
 PGVERSION=$$(pg_config --version | sed 's/.* //' | cut -f1-2 -d.)
-PACKAGE=postgresql-pgcrypto-signatures-$(PGVERSION)
+PACKAGE=postgresql-pgcrypto-openpgp-$(PGVERSION)
 ROOT=$(PWD)
-DEBIAN=$(ROOT)/debian/postgresql-pgcrypto-signatures
+DEBIAN=$(ROOT)/debian/postgresql-pgcrypto-openpgp
 PACKAGEDIR=$(ROOT)/$(PACKAGE)-$(VERSION)
 BUILDDIR=$(ROOT)/$(PACKAGE)-$(VERSION)-build
 CP=cp -p
@@ -17,16 +17,16 @@ build: clean
 	mkdir -p "$(PACKAGEDIR)" \
 		"$(PACKAGEDIR)/DEBIAN"
 	mkdir -p "$(BUILDDIR)"
-	if [ ! -e "$(ROOT)/postgres/.git" ]; then \
-		git submodule update --init; \
-	fi
-	tar -C postgres -cf - --exclude=.git . | tar -C "$(BUILDDIR)" -xf -
-	(cd "$(BUILDDIR)"; patch -t -p1 < "$(DEBIAN)/000-build.patch")
-	(cd "$(BUILDDIR)"; patch -t -p1 < "$(DEBIAN)/001-disablefunctions.patch")
-	(cd "$(BUILDDIR)/contrib/pgcrypto"; USE_PGXS=1 $(MAKE))
-	perl -p -i -e 's/pgcrypto/pgcrypto_signatures/' "$(BUILDDIR)/contrib/pgcrypto/pgcrypto.control" "$(BUILDDIR)/contrib/pgcrypto/pgcrypto--1.2.sql"
-	(cd "$(BUILDDIR)/contrib/pgcrypto"; USE_PGXS=1 $(MAKE) DESTDIR=$(PACKAGEDIR) install)
-	(cd "$(PACKAGEDIR)";  find . -type f -name "*pgcrypto*"  -exec rename 's/pgcrypto/pgcrypto_signatures/' '{}' \;)
+	(cd "$(BUILDDIR)"; apt-get source postgresql-contrib-$(PGVERSION))
+	(cd "$(BUILDDIR)" ; \
+		set -e; \
+		cd */contrib/pgcrypto; \
+		for file in $$(ls $(DEBIAN)/patches/* | sort -n); do \
+			patch -t -p1 < "$$file"; \
+		done; \
+		$(MAKE); \
+		$(MAKE) DESTDIR=$(PACKAGEDIR) install ; \
+	)
 
 install:
 

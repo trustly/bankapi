@@ -180,9 +180,9 @@ installation:
   pg\_hba.conf file: local www-data bankapi peer
 - To optionally install the test bank data: sudo -u postgres psql --dbname=bankapi --single-transaction --no-psqlrc --file=testdata/index.sql
 
-### postgresql-pgcrypto-signatures-9.3.deb
+### postgresql-pgcrypto-openpgp-9.3.deb
 
 This is an extension to the pgcrypto PostgreSQL extension. The extension only
 installs with the extended functions, all functions normally in pgcrypto is
 still accessed from the standard pgcrypto extension. The extension is called
-pgcrypto\_signatures.
+pgcrypto\_openpgp.

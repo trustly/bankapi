@@ -1,5 +1,5 @@
 MAKE_BANKAPI=$(MAKE) -f debian/bankapi/rules
-MAKE_POSTGRES=$(MAKE) -f debian/postgresql-pgcrypto-signatures/rules
+MAKE_POSTGRES=$(MAKE) -f debian/postgresql-pgcrypto-openpgp/rules
 
 all: deb
 
