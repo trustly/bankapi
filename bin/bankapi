@@ -210,9 +210,75 @@ def read_message(messageid):
 
         bail(error="Read failed with error %s, code %s" % (e.pgerror, e.pgcode))
 
+def gpg_list_key_data(bankid, desc, secret=None):
+    try:
+        if secret is not None:
+            key_list = subprocess.check_output(['/usr/bin/gpg', '--with-fingerprint', '--with-colons', '--list-secret-keys', bankid])
+        else:
+            key_list = subprocess.check_output(['/usr/bin/gpg', '--with-fingerprint', '--with-colons', '--list-keys', bankid])
+    except subprocess.CalledProcessError:
+        return None
+
+    key_lines = key_list.split('\n')
+    data = {}
+    for line in key_lines:
+        fields = line.split(':')
+        if fields[0] == 'pub' or fields[0] == 'sec':
+            try:
+                keyid = fields[4]
+                bankid = fields[9][:(fields[9].index(' '))]
+                data_str =  unescape_gpg_comment(fields[9][(fields[9].index('(') + 1):(fields[9].rindex(')'))])
+            except ValueError as e:
+                bail(error="Failed to parse description in %s key (%s)" % (fields[0], fields[9]))
+
+            try:
+                commentdata = json.loads(data_str)
+            except ValueError as e:
+                bail(error="Invalid JSON description in %s key (%s): %s" % (fields[0], data_str, str(e)))
+
+            data[fields[0]] = {
+                    "keyid": keyid,
+                    "bankid": bankid,
+                    "comment": commentdata
+                    }
+
+        elif fields[0] == 'fpr':
+            data[fields[0]] = fields[9]
+        elif fields[0] == 'sub':
+            data[fields[0]] = {
+                    "keyid": fields[4]
+                    }
+    return data
+
+def gpg_export_key_data(keyid, desc, secret=None):
+
+    try:
+        if secret is not None:
+            key = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export-secret-key', keyid])
+        else:
+            key = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export', keyid])
+
+    except subprocess.CalledProcessErrror:
+        bail(error="Could not export %s key %s" % (desc, keyid))
+
+def fpr_str(fpr):
+    return ' '.join([fpr[i:i+4] for i in range(0, len(fpr), 4)])
+
 def add_bank_key(bankid):
     global pgp_keyserver
     global pg_conn
+
+    try:
+        cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute('SELECT 1 AS hasbank FROM Banks WHERE BankID = %s', [bankid])
+        sqldata = cur.fetchone()
+        pg_conn.commit()
+
+        if cur.rowcount > 0:
+            bail(error='Bank %s already exists' % (bankid))
+    except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
+        pg_conn.rollback()
+        bail(error="Register bank failed with error %s, code %s" % (e.pgerror, e.pgcode))
 
     key_list = None
     try:
@@ -232,76 +298,72 @@ def add_bank_key(bankid):
     if import_key:
         import_status = subprocess.call(['/usr/bin/gpg', '--keyserver', pgp_keyserver, '--search-keys',bankid])
 
+    pubkey = gpg_list_key_data(bankid, "Public key")
+
+    if pubkey is None:
+        bail(error='Could not find public key information for bank %s' % (bankid))
+
+    if pubkey.get('pub') is None:
+        bail(error='Found public key for %s, however failed to extract information from gpg regarding the key' % (bankid))
+    if (pubkey['pub']['comment'].get('protocol') is None or
+            pubkey['pub']['comment'].get('host') is None or
+            pubkey['pub']['comment'].get('port') is None or
+            pubkey['pub']['comment'].get('path') is None):
+            bail(error="Found public key for %s (key %s) and it  privides a valid JSON in the comment, but does not provide values for protocol, host, port and path" % (bankid, pubkey['pub']['keyid']))
+
+    print "Found publickey for %s with fingerprint %s" % (bankid, fpr_str(pubkey['fpr']))
+    print ""
+    print "Use this key (y/N)? ",
+    if sys.stdin.readline().rstrip() != 'y':
+        bail(error='Aborting')
+
+    pubkey_armor = gpg_export_key_data(pubkey['pub']['keyid'], "Public key for %s" % (bankid))
+
+    print "Registering bank %s with pubkey %s, subkey %s using %s" % (bankid, pubkey['pub']['keyid'], pubkey['sub']['keyid'], url_str(pubkey['pub']['comment']['protocol'],
+        pubkey['pub']['comment']['host'], pubkey['pub']['comment']['port'], pubkey['pub']['comment']['path']))
+
+    seckey = gpg_list_key_data(bankid, "Secret key", secret=True)
+    if seckey is not None:
+        if seckey.get('sec') is None:
+            bail(error='Found secret key for %s (key %s), however failed to extract information from gpg regarding the key')
+
+        if pubkey['fpr'] != seckey['fpr']:
+            bail(error='Found secret key for %s (key %s), however the fingerprint for this key does not match the fingerprint for the public key (%s != %s)' % (fpr_str(pubkey['fpr']), fpr_str(seckey['fpr'])))
+
+        seckey_armor = gpg_export_key_data(seckey['sec']['keyid'], "Secret key for %s" % (bankid))
+
+        print "Found matching secret key for bank %s, adding it" % (bankid)
+
     try:
-        key_list = subprocess.check_output(['/usr/bin/gpg', '--with-colons', '--list-keys', bankid])
-    except subprocess.CalledProcessError:
-        bail(error="No key found for %s" % (bankid))
+        cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute("""SELECT Register_Bank(
+                _BankID := %s,
+                _Protocol := %s,
+                _Host := %s,
+                _Port := %s,
+                _Path := %s)""",
+                [bankid, pubkey['pub']['comment']['protocol'], pubkey['pub']['comment']['host'], pubkey['pub']['comment']['port'], pubkey['pub']['comment']['path']])
+        sqldata = cur.fetchone()
+        pg_conn.commit()
 
-    key_lines = key_list.split('\n')
+        cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute("""SELECT Register_Public_Keyring(
+                _BankID := %s,
+                _PublicKeyring := %s)""",
+                [bankid, pubkey_armor])
+        sqldata = cur.fetchone()
+        pg_conn.commit()
 
-    if len(key_lines) == 4:
-        subkeyid = None
-        pubkeyid = None
-        data = None
-
-
-        for line in key_lines:
-            fields = line.split(':')
-            if fields[0] == 'pub':
-                try:
-                    pubkeyid = fields[4]
-                    vfy_bankid = fields[9][:(fields[9].index(' '))]
-                    data_str =  unescape_gpg_comment(fields[9][(fields[9].index('(') + 1):(fields[9].rindex(')'))])
-                except ValueError as e:
-                    bail(error="Failed to parse description in key (%s)" % (fields[9]))
-
-                try:
-                    data = json.loads(data_str)
-                except ValueError as e:
-                    bail(error="Invalid JSON description in key (%s): %s" % (data_str, str(e)))
-
-            elif fields[0] == 'sub':
-                subkeyid = fields[4]
-
-        if subkeyid is None or pubkeyid is None:
-            bail(error='Failed to extract public, sub key ids or description from key')
-
-        try:
-            pubkey = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export', pubkeyid])
-        except subprocess.CalledProcessErrror:
-            bail(error="Could not export key %s for %s" % (pubkeyid, bankid))
-
-
-        protocol, host, port, path = None, None, None, None
-        try:
-            protocol = data['protocol']
-            host = data['host']
-            port = data['port']
-            path = data['path']
-        except KeyError as e:
-            bail(error="Key %s privides a valid JSON in the commonet, but does not provide values for protocol, host, port and path" % (pubkeyid))
-
-        print "Registering pubkey %s, subkey %s for %s using %s" % (pubkeyid, subkeyid, bankid, url_str(protocol, host, port, path))
-
-        try:
-            cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            cur.execute("""SELECT Register_Bank(
-                    _BankID := %s,
-                    _Protocol := %s,
-                    _Host := %s,
-                    _Port := %s,
-                    _Path := %s)""",
-                    [bankid, protocol, host, port, path])
-
-            sqldata = cur.fetchone()
-
-            pg_conn.commit()
-        except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
-            pg_conn.rollback()
-
-            bail(error="Failed to register bank failed with error %s, code %s" % (e.pgerror, e.pgcode))
-    else:
-        bail(error='lines %i' % (len(key_lines)))
+        cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute("""SELECT Register_Secret_Keyring(
+                _BankID := %s,
+                _SecretKeyring := %s)""",
+                [bankid, seckey_armor])
+        sqldata = cur.fetchone()
+        pg_conn.commit()
+    except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
+        pg_conn.rollback()
+        bail(error="Register bank failed with error %s, code %s" % (e.pgerror, e.pgcode))
 
 
 def url_str(protocol, host, port, path=None):
