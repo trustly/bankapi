@@ -18,6 +18,41 @@ BankAPI is only a transmission protocol, and makes no assumptions of what kind o
 
 ![layout](https://raw.githubusercontent.com/trustly/bankapi/master/doc/BankAPI%20Protocol%20Design.png)
 
+The protocol has certain restrictions on the details and choices of algorithms
+used for generating the OpenPGP messages.  The terminology used here conforms
+to the one specified in [RFC2119](http://tools.ietf.org/html/rfc2119).  The
+details specific to OpenPGP are documented in
+[RFC4880](http://tools.ietf.org/html/rfc4880).
+
+1. All OpenPGP messages **MUST** be symmetrically encrypted messages, where the
+   session key is public-key encrypted.  The session key packet **MUST**
+   contain the _Key ID_ of the key used to encrypt the message.  All messages
+   **MUST** contain a signature packet.  Implementations **MAY** choose to
+   generate one-pass signatures.
+
+2. All parties **MUST** use a key length of 2048 bits for their RSA keys.
+   Implementations **MAY** accept longer keys.  DSA and Elgamal **MUST NOT** be
+   used.
+
+3. The cipher algorithm **MUST** be one of AES128, AES192 and AES256.
+
+4. If the OpenPGP message is a _compressed message_, the compression algorithm
+   **MUST** be ZIP or ZLIB.
+
+5. The OpenPGP message **MAY** be integrity protected.
+
+6. The _literal data_ inside the OpenPGP message **MUST** be marked to contain
+   binary data.  If a text or UTF-8 message is received, an implementation
+   **MAY** choose to accept the message.  An implementation **MUST NOT**
+   convert any _canonical line endings_ to their local counterpart.
+
+7. The signature packet and (if present) the one-pass signature packet must
+   contain the _Key ID_ of the key used to sign the message.  Implementations
+   **SHOULD** only sign a message using a single key.  The hash algorithm used
+   for signatures **MUST** be SHA-512.
+
+8. The _ASCII Armor_ must be valid UTF-8.
+
 ## System design
 
 ![layout](https://raw.githubusercontent.com/trustly/bankapi/master/doc/BankAPI%20System%20Design.png)
