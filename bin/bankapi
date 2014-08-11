@@ -11,6 +11,7 @@ import pprint
 import socket
 import getopt
 import subprocess
+import os
 
 pg_connect_str = "dbname=bankapi"
 pg_conn = None
@@ -212,10 +213,11 @@ def read_message(messageid):
 
 def gpg_list_key_data(keyid, desc, secret=None):
     try:
+        fhnull = open(os.devnull, 'w')
         if secret is not None:
-            key_list = subprocess.check_output(['/usr/bin/gpg', '--with-fingerprint', '--with-colons', '--list-secret-keys', keyid])
+            key_list = subprocess.check_output(['/usr/bin/gpg', '--with-fingerprint', '--with-colons', '--list-secret-keys', keyid], stderr=fhnull)
         else:
-            key_list = subprocess.check_output(['/usr/bin/gpg', '--with-fingerprint', '--with-colons', '--list-keys', keyid])
+            key_list = subprocess.check_output(['/usr/bin/gpg', '--with-fingerprint', '--with-colons', '--list-keys', keyid], stderr=fhnull)
     except subprocess.CalledProcessError:
         return None
 
@@ -253,10 +255,11 @@ def gpg_list_key_data(keyid, desc, secret=None):
 def gpg_export_key_data(keyid, desc, secret=None):
 
     try:
+        fhnull = open(os.devnull, 'w')
         if secret is not None:
-            key = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export-secret-keys', keyid])
+            key = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export-secret-keys', keyid], stderr=fhnull)
         else:
-            key = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export', keyid])
+            key = subprocess.check_output(['/usr/bin/gpg', '--armor', '--export', keyid], stderr=fhnull)
 
         return key
     except subprocess.CalledProcessErrror:
@@ -284,26 +287,39 @@ def add_bank_key(bankid):
 
 
     use_keyid = None
-
+    has_searched = False
     while use_keyid is None:
         key_list = None
         try:
-            key_list = subprocess.check_output(['/usr/bin/gpg', '--list-keys', bankid])
+            fhnull = open(os.devnull, 'w')
+            key_list = subprocess.check_output(['/usr/bin/gpg', '--list-keys', bankid], stderr=fhnull)
         except subprocess.CalledProcessError:
             pass
 
-        import_key = True
+        search_keyserver = True
         if key_list is not None:
             print "There are local keys matching search for %s:" % (bankid)
             print ""
             print key_list
-            print "Enter key id of key to use, blank to search keyserver:"
+            if has_searched:
+                print "Enter key id of key to use, blank to abort:"
+            else:
+                print "Enter key id of key to use, blank to search keyserver:"
             use_keyid = sys.stdin.readline().rstrip()
-            if use_keyid != '':
-                import_key = False
+            if use_keyid == '':
+                use_keyid = None
+            if use_keyid is not None:
+                search_keyserver = False
 
-        if import_key:
-            import_status = subprocess.call(['/usr/bin/gpg', '--keyserver', pgp_keyserver, '--search-keys',bankid])
+        if use_keyid is None and has_searched:
+            break
+
+        if search_keyserver:
+            has_searched = True
+            subprocess.call(['/usr/bin/gpg', '--keyserver', pgp_keyserver, '--search-keys',bankid])
+
+    if use_keyid is None:
+        bail(error='No key for import')
 
     pubkey = gpg_list_key_data(use_keyid, "Public key")
 
