@@ -46,7 +46,7 @@ details specific to OpenPGP are documented in
    **MAY** choose to accept the message.  An implementation **MUST NOT**
    convert any _canonical line endings_ to their local counterpart.
 
-7. The signature packet and (if present) the one-pass signature packet must
+7. The signature packet and (if present) the one-pass signature packet **MUST**
    contain the _Key ID_ of the key used to sign the message.  Implementations
    **SHOULD** only sign a message using a single key.  The hash algorithm used
    for signatures **MUST** be SHA-512.
