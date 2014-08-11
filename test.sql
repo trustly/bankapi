@@ -1,7 +1,8 @@
 SELECT MessageID FROM Create_Message(
-    _Plaintext  := 'Hello world',
-    _FromBankID := 'TESTBANK001',
-    _ToBankID   := 'TESTBANK002'
+    _Plaintext      := 'Hello world',
+    _MessageType    := 'text/plain',
+    _FromBankID     := 'TESTBANK001',
+    _ToBankID       := 'TESTBANK002'
 );
 --                                                             messageid                                                             
 -- ----------------------------------------------------------------------------------------------------------------------------------
@@ -9,7 +10,7 @@ SELECT MessageID FROM Create_Message(
 -- (1 row)
 
 SELECT Ciphertext FROM Get_Message(
-    _MessageID := Create_Message('Hello world','TESTBANK001','TESTBANK002')
+    _MessageID := Create_Message('Hello world','text/plain','TESTBANK001','TESTBANK002')
 );
 --                                   ciphertext                                  
 -- ------------------------------------------------------------------------------
@@ -33,7 +34,7 @@ SELECT Ciphertext FROM Get_Message(
 -- (1 row)
 
 SELECT Plaintext, FromBankID, ToBankID FROM Read_Message(
-    _MessageID := Create_Message('Hello world','TESTBANK001','TESTBANK002')
+    _MessageID := Create_Message('Hello world','text/plain','TESTBANK001','TESTBANK002')
 );
 --   plaintext  | frombankid  |  tobankid   
 -- -------------+-------------+-------------
@@ -41,7 +42,7 @@ SELECT Plaintext, FromBankID, ToBankID FROM Read_Message(
 -- (1 row)
 
 SELECT EncryptionKeyID, SignatureKeyID, Plaintext FROM Decrypt_Verify(
-    _Cipherdata := dearmor(Get_Message(Create_Message('Hello world','TESTBANK001','TESTBANK002')))
+    _Cipherdata := dearmor(Get_Message(Create_Message('Hello world','text/plain','TESTBANK001','TESTBANK002')))
 );
 --  encryptionkeyid  |  signaturekeyid  |  plaintext  
 -- ------------------+------------------+-------------
@@ -50,7 +51,7 @@ SELECT EncryptionKeyID, SignatureKeyID, Plaintext FROM Decrypt_Verify(
 
 
 SELECT FileID, FromBankID, ToBankID FROM Decode_Delivery_Receipt(
-    _DeliveryReceipt := Receive_Message(Get_Message(Create_Message('Hello world','TESTBANK001','TESTBANK002')))
+    _DeliveryReceipt := Receive_Message(Get_Message(Create_Message('Hello world','text/plain','TESTBANK001','TESTBANK002')))
 );
 --                                                               fileid                                                              | frombankid  |  tobankid   
 -- ----------------------------------------------------------------------------------------------------------------------------------+-------------+-------------
@@ -58,7 +59,7 @@ SELECT FileID, FromBankID, ToBankID FROM Decode_Delivery_Receipt(
 -- (1 row)
 
 SELECT EncryptionKeyID, SignatureKeyID, Plaintext FROM Decrypt_Verify(
-    _Cipherdata := dearmor(Get_Message(Create_Message('Hello world','TESTBANK001','TESTBANK002')))
+    _Cipherdata := dearmor(Get_Message(Create_Message('Hello world','text/plain','TESTBANK001','TESTBANK002')))
 );
 --  encryptionkeyid  |  signaturekeyid  |  plaintext  
 -- ------------------+------------------+-------------
@@ -66,9 +67,9 @@ SELECT EncryptionKeyID, SignatureKeyID, Plaintext FROM Decrypt_Verify(
 -- (1 row)
 
 SELECT Cipherdata FROM Encrypt_Sign(
-    _Plaintext       := 'Hello world',
-    _EncryptionKeyID := (SELECT SubKeyID FROM Keys WHERE BankID = 'TESTBANK001'),
-    _SignatureKeyID  := (SELECT MainKeyID FROM Keys WHERE BankID = 'TESTBANK001')
+    _Plaintext          := 'Hello world',
+    _EncryptionKeyID    := (SELECT SubKeyID FROM Keys WHERE BankID = 'TESTBANK001'),
+    _SignatureKeyID     := (SELECT MainKeyID FROM Keys WHERE BankID = 'TESTBANK001')
 );
 --                                                                                                                            cipherdata                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
 -- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -76,7 +77,7 @@ SELECT Cipherdata FROM Encrypt_Sign(
 -- (1 row)
 
 SELECT DeliveryReceipt FROM Receive_Message(
-    _Ciphertext := Get_Message(Create_Message('Hello world','TESTBANK001','TESTBANK002'))
+    _Ciphertext := Get_Message(Create_Message('Hello world','text/plain','TESTBANK001','TESTBANK002'))
 );
 
 --                                deliveryreceipt                                
