@@ -19,19 +19,19 @@ In this text, to save space, the word "bank" will be used to refer to both banks
 
 ## Why?
 
-All banks currently communicate with each other the one and only SWIFT network.
+All banks currently communicate with each other over the SWIFT network.
 The message types sent over SWIFT will probably remain the same for a long time, such as FIN MT-files or FileAct ISO20022 XML-files.
 Many banks depend on legacy systems and cannot easily change the file formats they use to communicate with each other.
 
-SWIFT is a centralized system, which basically is a gigantic mailserver in which each bank has a mail account with a mail address, a so called BIC (Bank Identifier Code), such as "TRLYSESSXXX".
-SWIFT is highly secure and guarantees the plaintext data you send over unencrypted over the network won't be read by anyone else than potentially SWIFT themselves,
-and also guarantees the message a bank receives originates from the bank who sent the message.
+SWIFT is a centralized system, which basically is a gigantic mailserver in which each bank has a mail account with a mail address, a so called BIC, such as "TRLYSESSXXX".
+SWIFT is highly secure and guarantees the plaintext data you send over the network won't be read by anyone else than potentially SWIFT themselves,
+and also guarantees the message a bank receives originates from the bank who claims to have sent the message.
 
-Of all arguments, cost is probably the primary. We take for granted emails are free of charge. But SWIFT messages are not free of charge, which is perfectly understandable, as it's a centralized platform, and the SWIFT company must make money to keep the platform up and running.
-The email protocol is by design decentralized, meaning there is no single giant mailserver in the middle responsible for delivering all emails between its users. There are some really big ones though, like Gmail.
+We take for granted emails are free of charge. But SWIFT messages are not free of charge, which is perfectly understandable, as it's a centralized system, and they must make money to keep the platform up and running.
+Compare this with for instance the email protocol SMTP, which is by its design decentralized, meaning there is no single giant mailserver in the middle responsible for delivering all emails between its users. There are some really big ones though, like Gmail.
 
 The fees charged by SWIFT was the main reason why this project took off in the first place.
-We wanted a way to communicate with other banks in a more efficient way without any fees to do something simple as messaging.
+We wanted a way to communicate with other banks in a more efficient way without any fees to do something as simple as sending a message from A to B.
 
 The decentralized design of BankAPI protocol ensures noone controls it, noone owns it, noone can shut it down, just like the Internet.
 The un-innovative design of BankAPI protocol ensures noone can critizise it, as there is nothing new invented, it's just a combination of existing well prooven technologies.
@@ -89,7 +89,7 @@ BankAPI is a OpenPGP compliant secure decentralized messaging system.
 
 The system is built on top of PostgreSQL and uses its pgcrypto contrib module.
 
-Messages are encrypted and signed using RSA public key cryptography.
+Messages are encrypted and signed using RSA public-key cryptography.
 
 Each bank generates a RSA key-pair consisting of a public and a secret key.
 
