@@ -25,7 +25,7 @@ def bail(error=None):
         print "Usage: %s [-d dbname] <command> <args>" % (sys.argv[0])
         print ""
         print "Commands:"
-        print " send frombank tobank messagetype filename [ messagetype filename ... ]"
+        print " send frombank tobank messagetype [ filename ... ]"
         print " list"
         print " read messageid"
         print " add keyid"
@@ -40,21 +40,20 @@ def bail(error=None):
 def process_commandline(command, argv):
     if command == 'send':
             # We need even pairs with messagetype/filename for sending
-        if len(argv) < 4 or len(argv) % 2:
+        if len(argv) < 3:
             bail()
 
         frombank = argv.pop(0)
         tobank = argv.pop(0)
-        files = list()
+        messagetype = argv.pop(0)
+        if len(argv):
+            files = argv
+        else:
+            files = ['-']
 
-        while argv:
-            files.append({
-                'messagetype': argv.pop(0),
-                'filename': argv.pop(0)
-                })
+        for filename in files:
+            send_file(frombank, tobank, messagetype, filename)
 
-        for filedata in files:
-            send_file(frombank, tobank, filedata['messagetype'], filedata['filename'])
     elif command == 'list':
         list_messages()
     elif command == 'read':
