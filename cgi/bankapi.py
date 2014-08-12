@@ -32,12 +32,12 @@ def respond(result=None, error=None, httperrorcode=None):
     sys.exit(0)
 
 def error_log(s):
-    print "s" >> sys.stderr
+    sys.stderr.write("%s\n" % (s))
 
 try:
     pg_conn = psycopg2.connect(pg_connect_str)
 except psycopg2.Error as e:
-    error_log("Failed to connect to database: error=%s, code=%, diag=%", e.pgerror, e.pgcode, e.diag)
+    error_log("Failed to connect to database: error=%s, code=%s" % (e.pgerror, e.pgcode))
     respond(error='Failed to connect to database', httperrorcode=500)
 
 try:
@@ -58,7 +58,7 @@ if indata is not None:
         respond(result=sqldata['deliveryreceipt'])
     except psycopg2.InternalError as e:
         pg_conn.rollback()
-        error_log("Call to Receive_Message failed: error=%s, code=%, diag=%", e.pgerror, e.pgcode, e.diag)
+        error_log("Call to Receive_Message failed: error=%s, code=%s" % (e.pgerror, e.pgcode))
 
         mg = re.match('ERROR:\s+(ERROR_\S+)', e.pgerror)
         if mg is not None:
@@ -67,7 +67,7 @@ if indata is not None:
             respond(error='Receieve processing failed', httperrorcode=500)
 
     except psycopg2.ProgrammingError as e:
-        error_log("Call to Receive_Message failed with ProgrammingError: error=%s, code=%, diag=%", e.pgerror, e.pgcode, e.diag)
+        error_log("Call to Receive_Message failed with ProgrammingError: error=%s, code=%s" % (e.pgerror, e.pgcode))
         pg_conn.rollback()
         respond(error='Recieve processing failed', httperrorcode=500)
 else:
