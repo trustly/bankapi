@@ -10,15 +10,8 @@ _Dearmored := dearmor(_SecretKeyring);
 _MainKeyID := pgp_main_key_id(_Dearmored);
 _SubKeyID  := pgp_key_id(_Dearmored);
 
-IF EXISTS (SELECT 1 FROM Keys WHERE MainKeyID = _MainKeyID AND SubKeyID = _SubKeyID AND BankID = _BankID) THEN
-    UPDATE Keys SET SecretKeyring = _Dearmored
-    WHERE MainKeyID = _MainKeyID AND SubKeyID = _SubKeyID AND BankID = _BankID
-    RETURNING TRUE INTO STRICT _OK;
-    RETURN TRUE;
-END IF;
-
-INSERT INTO Keys (MainKeyID,  SubKeyID,  SecretKeyring, BankID)
-VALUES          (_MainKeyID, _SubKeyID, _Dearmored,    _BankID)
+UPDATE Keys SET SecretKeyring = _Dearmored
+WHERE MainKeyID = _MainKeyID AND SubKeyID = _SubKeyID AND BankID = _BankID
 RETURNING TRUE INTO STRICT _OK;
 
 RETURN TRUE;
