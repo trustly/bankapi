@@ -16,6 +16,10 @@ echo 'This is another secret message from TESTBANK001 to TESTBANK002' | \
     /usr/bin/bankapi send -d TESTBANK001 TESTBANK001 TESTBANK002 text/plain -
 
 
+echo "Searching and adding the bankapi key for Trustly into TESTBANK001 database."
+echo "Please respond to the questions interactivly"
+echo "Import key with id: 2E4C6F05FC0156943ABA5EBA41F51DC2C04EA656"
+/usr/bin/bankapi add -d TESTBANK001 TRLYSESSXXX
 
 # List the messages present in both databases. The information in the two
 # databases should really be the same as we update and keep all the message
@@ -27,7 +31,6 @@ echo "List messages in the system of TESTBANK002"
 /usr/bin/bankapi list -d TESTBANK002
 
 echo "The two lists of messages should be identical (apart from minor differences in timestamps)"
-
 
 # Now fetch the last message in the list from TESTBANK002 database and display it using read
 messagerow=$(/usr/bin/bankapi list -d TESTBANK002 | tail -n2 | head -n1)
