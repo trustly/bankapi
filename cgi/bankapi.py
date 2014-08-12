@@ -41,36 +41,36 @@ except psycopg2.Error as e:
     respond(error='Failed to connect to database', httperrorcode=500)
 
 try:
-    indata = sys.stdin.read()
+    indata = sys.stdin.read().strip()
 except Exception as e:
     respond(error='Failed to decode input data', httperrorcode=400)
 
-if indata is not None:
-    cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+if indata is None or len(indata) == 0:
+    respond(error='No data', httperrorcode=400)
 
-    sqldata = None
-    try:
-        cur.execute('SELECT DeliveryReceipt FROM receive_message(%s)',
-                [indata])
+cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        sqldata = cur.fetchone()
-        pg_conn.commit()
-        respond(result=sqldata['deliveryreceipt'])
-    except psycopg2.InternalError as e:
-        pg_conn.rollback()
-        error_log("Call to Receive_Message failed: error=%s, code=%s" % (e.pgerror, e.pgcode))
+sqldata = None
+try:
+    cur.execute('SELECT DeliveryReceipt FROM receive_message(%s)',
+            [indata])
 
-        mg = re.match('ERROR:\s+(ERROR_\S+)', e.pgerror)
-        if mg is not None:
-            respond(error=mg.group(1), httperrorcode=500)
-        else:
-            respond(error='Receieve processing failed', httperrorcode=500)
+    sqldata = cur.fetchone()
+    pg_conn.commit()
+    respond(result=sqldata['deliveryreceipt'])
+except psycopg2.InternalError as e:
+    pg_conn.rollback()
+    error_log("Call to Receive_Message failed: error=%s, code=%s" % (e.pgerror, e.pgcode))
 
-    except psycopg2.ProgrammingError as e:
-        error_log("Call to Receive_Message failed with ProgrammingError: error=%s, code=%s" % (e.pgerror, e.pgcode))
-        pg_conn.rollback()
-        respond(error='Recieve processing failed', httperrorcode=500)
-else:
-    respond(error='Invalid method', httperrorcode=404)
+    mg = re.match('ERROR:\s+(ERROR_\S+)', e.pgerror)
+    if mg is not None:
+        respond(error=mg.group(1), httperrorcode=500)
+    else:
+        respond(error='Receieve processing failed', httperrorcode=500)
+
+except psycopg2.ProgrammingError as e:
+    error_log("Call to Receive_Message failed with ProgrammingError: error=%s, code=%s" % (e.pgerror, e.pgcode))
+    pg_conn.rollback()
+    respond(error='Recieve processing failed', httperrorcode=500)
 
 sys.exit(0)
