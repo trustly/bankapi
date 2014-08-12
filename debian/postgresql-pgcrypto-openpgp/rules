@@ -21,11 +21,19 @@ build: clean
 	(cd "$(BUILDDIR)" ; \
 		set -e; \
 		cd */contrib/pgcrypto; \
-		for file in $$(ls $(DEBIAN)/patches/* | sort -n); do \
+		if [ -d "$(DEBIAN)/patches/$(PGVERSION)" ]; then \
+			for file in $$(ls $(DEBIAN)/patches/$(PGVERSION)/*.patch | sort -n); do \
+				echo "PATCH $$file"; \
+				patch -t -p1 < "$$file"; \
+			done; \
+		fi; \
+		for file in $$(ls $(DEBIAN)/patches/*.patch | sort -n); do \
+			echo "PATCH $$file"; \
 			patch -t -p1 < "$$file"; \
 		done; \
+		echo "Done patching"; \
 		$(MAKE); \
-		$(MAKE) DESTDIR=$(PACKAGEDIR) install ; \
+		$(MAKE) DESTDIR=$(PACKAGEDIR) install; \
 	)
 
 install:

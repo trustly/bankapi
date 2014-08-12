@@ -1,0 +1,49 @@
+--- a/pgp-pgsql.c	2014-03-17 20:37:27.000000000 +0100
++++ b/pgp-pgsql.c	2014-08-12 09:04:17.227360990 +0200
+@@ -31,8 +31,8 @@
+ 
+ #include "postgres.h"
+ 
+-#include "fmgr.h"
+-#include "parser/scansup.h"
++#define px_memset(a,b,c) memset(a,b,c)
++
+ #include "mb/pg_wchar.h"
+ #include "utils/builtins.h"
+ 
+@@ -40,6 +40,8 @@
+ #include "px.h"
+ #include "pgp.h"
+ 
++#include "fmgr.h"
++#include "parser/scansup.h"
+ /*
+  * public functions
+  */
+@@ -89,7 +91,7 @@
+ 
+ 	px_add_entropy(sha1, 20);
+ 
+-	memset(sha1, 0, 20);
++	px_memset(sha1, 0, 20);
+ }
+ 
+ /*
+@@ -131,7 +133,7 @@
+ 		add_block_entropy(md, data3);
+ 
+ 	px_md_free(md);
+-	memset(rnd, 0, sizeof(rnd));
++	px_memset(rnd, 0, sizeof(rnd));
+ }
+ 
+ /*
+@@ -169,7 +171,7 @@
+ static void
+ clear_and_pfree(text *p)
+ {
+-	memset(p, 0, VARSIZE(p));
++	px_memset(p, 0, VARSIZE(p));
+ 	pfree(p);
+ }
+ 
