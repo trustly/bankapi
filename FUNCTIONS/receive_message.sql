@@ -25,8 +25,8 @@ SELECT EncryptionKeyID,  SignatureKeyID,  Plaintext
 INTO  _EncryptionKeyID, _SignatureKeyID, _Plaintext
 FROM Decrypt_Verify(_Cipherdata);
 
-SELECT BankID INTO STRICT _FromBankID FROM Keys WHERE MainKeyID = _SignatureKeyID  AND PrimaryKey IS TRUE;
-SELECT BankID INTO STRICT _ToBankID   FROM Keys WHERE SubKeyID  = _EncryptionKeyID AND PrimaryKey IS TRUE;
+SELECT BankID INTO STRICT _FromBankID FROM Keys WHERE MainKeyID = _SignatureKeyID;
+SELECT BankID INTO STRICT _ToBankID   FROM Keys WHERE SubKeyID  = _EncryptionKeyID;
 
 _FileID := encode(digest(_Plaintext, 'sha512'),'hex');
 
