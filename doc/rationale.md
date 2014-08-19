@@ -45,11 +45,3 @@ It turns out SWIFT is perfectly suited for the task of exchanging public keys.
 If bank A sends their public keys to bank B as a normal SWIFT text message, bank B will know it really comes from A.
 Bank B will also be able to later on provide proof to others bank A really did send them that particular public key, as SWIFT messages are archieved.
 That also means Bank B will be able to prove all messages sent over the Internet from bank A really comes from bank A.
-
-The more banks that exchange public keys, the stronger will a potential "web of trust" be where each bank would sign the other banks public keys,
-allowing others to trust an unknown bank's public key because it has been signed by multiple other banks, which public keys can be found on their websites.
-
-But before you have a lot of banks who have migrated to this new way of communicating, SWIFT is an excellent way of doing the exchange of public keys.
-It's excellent because all banks already know how to send each other manual text messages via SWIFT, so they can just copy/paste the ASCII armored public keyring in the SWIFT terminal and send it, probably in a FIN MT999, which is a SWIFT message type which allows free text messages.
-
-The exchange of public keys via SWIFT could also be automated, but we can worry about that when the number of BankAPI banks reach a sufficiently high number to motivate automating the task.
