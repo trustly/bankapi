@@ -15,7 +15,7 @@ The fees charged by SWIFT was the main reason why this project took off in the f
 We wanted a way to communicate with other banks in a more efficient way without any fees to do something as simple as sending a message from A to B.
 
 The decentralized design of BankAPI protocol ensures noone controls it, noone owns it, noone can shut it down, just like the Internet.
-The un-innovative design of BankAPI protocol ensures noone can critizise it, as there is nothing new invented, it's just a combination of existing well prooven technologies.
+The un-innovative design of BankAPI protocol ensures noone can critizise it, as there is nothing new invented, it's just a combination of existing well proven technologies.
 
 Imagine if all mail in the world would be sent to a single central SMTP mailserver in Belgium, and from there delivered to the addressee.
 That would be horrible from an efficiency perspective.
@@ -44,7 +44,7 @@ If they would exchange public keys in person by visiting each others bank headqu
 It turns out SWIFT is perfectly suited for the task of exchanging public keys.
 If bank A sends their public keys to bank B as a normal SWIFT text message, bank B will know it really comes from A.
 Bank B will also be able to later on provide proof to others bank A really did send them that particular public key, as SWIFT messages are archieved.
-That also means Bank B will be able to proove all messages sent over the Internet from bank A really comes from bank A.
+That also means Bank B will be able to prove all messages sent over the Internet from bank A really comes from bank A.
 
 The more banks that exchange public keys, the stronger will a potential "web of trust" be where each bank would sign the other banks public keys,
 allowing others to trust an unknown bank's public key because it has been signed by multiple other banks, which public keys can be found on their websites.
