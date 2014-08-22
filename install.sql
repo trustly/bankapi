@@ -11,6 +11,7 @@ CREATE EXTENSION pgcrypto_openpgp;
 \i FUNCTIONS/get_message.sql
 \i FUNCTIONS/receive_message.sql
 \i FUNCTIONS/read_message.sql
+\i FUNCTIONS/decrypt_message.sql
 \i FUNCTIONS/decode_delivery_receipt.sql
 \i FUNCTIONS/list_messages.sql
 \i FUNCTIONS/register_bank.sql
