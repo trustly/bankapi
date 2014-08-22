@@ -166,7 +166,7 @@ def send_file(from_bank, to_bank, messagetype, filename):
             pg_conn.commit()
         except (psycopg2.InternalError, psycopg2.ProgrammingError) as e:
             pg_conn.rollback()
-            bail(error="Failed to save delivery receipt: error=%s, code=%s, diag=%s" % (e.pgerror, e.pgcode, e.diag))
+            bail(error="Failed to save delivery receipt: error=%s, code=%s" % (e.pgerror, e.pgcode))
     else:
         bail(error="Failure")
 
