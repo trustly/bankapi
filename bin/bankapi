@@ -17,12 +17,13 @@ pg_connect_str = "dbname=bankapi"
 pg_conn = None
 pgp_keyserver = "keys.gnupg.net"
 
-def bail(error=None):
+def bail(error=None, help=False):
     global pgp_keyserver
 
     if error is not None:
         print "Error: %s" % (error.rstrip())
-    else:
+
+    if error is None or help == True:
         print "Usage: %s [-d dbname] <command> <args>" % (sys.argv[0])
         print ""
         print "Commands:"
@@ -68,7 +69,7 @@ def process_commandline(command, argv):
 
         add_bank_key(argv[0])
     else:
-        bail('Invalid command "%s"' % (command))
+        bail('Invalid command "%s"' % (command), help=True)
 
 def send_file(from_bank, to_bank, messagetype, filename):
     global pg_conn
@@ -425,17 +426,19 @@ def unescape_gpg_comment(comment):
     return n_comment + comment
 
 if len(sys.argv) < 2:
-    bail(error='No command given')
+    bail(error='No command given', help=True)
 
 command = sys.argv.pop(1)
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'd:')
+    opts, args = getopt.getopt(sys.argv[1:], 'd:?h')
     for o, a in opts:
         if o == '-d':
             pg_connect_str = "dbname=%s" % (a)
+        elif o == '-h' or o == '-?':
+            bail()
         else:
-            bail(error="Bad argument %s" % (o))
+            bail(error="Bad argument %s" % (o), help=True)
 except getopt.GetoptError as e:
     bail(error=str(e))
 
