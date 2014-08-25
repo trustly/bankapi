@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION Receive_Message(OUT DeliveryReceipt text, _Ciphertext
 DECLARE
 _Cipherdata bytea;
 _MessageID text;
-_MessageType text := 'text/plain'; -- hard-coded until we have pgp_armor_header(armor text, key text)
+_MessageType text;
 _EncryptionKeyID text;
 _SignatureKeyID text;
 _Plaintext text;
@@ -18,6 +18,7 @@ _FileID text;
 BEGIN
 
 _Cipherdata := dearmor(_Ciphertext);
+_MessageType := COALESCE(pgp_armor_header(_Ciphertext,'Comment'),'text/plain');
 
 _MessageID := encode(digest(_Cipherdata, 'sha512'),'hex');
 
