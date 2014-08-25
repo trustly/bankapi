@@ -213,7 +213,7 @@ installation:
 - sudo -u postgres psql --dbname=bankapi --single-transaction --no-psqlrc --file=install.sql
 - Make sure www-data user can connect to the bankapi database, this can for
   instance be done by adding the following line where appropriate in the active
-  pg\_hba.conf file: local www-data bankapi peer
+  pg\_hba.conf file: local bankapi www-data peer
 - To optionally install the test bank data: sudo -u postgres psql --dbname=bankapi --single-transaction --no-psqlrc --file=testdata/index.sql
 
 ### postgresql-pgcrypto-openpgp-9.3.deb
