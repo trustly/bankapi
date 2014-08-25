@@ -1,4 +1,6 @@
-CREATE OR REPLACE FUNCTION Create_Message(OUT MessageID text, _Plaintext text, _MessageType text, _FromBankID text, _ToBankID text) RETURNS TEXT AS $BODY$
+CREATE OR REPLACE FUNCTION Create_Message(OUT MessageID text, _Plaintext text, _MessageType text, _FromBankID text, _ToBankID text) RETURNS TEXT
+SET search_path TO public, pg_temp
+AS $BODY$
 DECLARE
 _FileID text;
 _SignatureKeyID text;
@@ -29,4 +31,4 @@ RETURNING TRUE INTO STRICT _OK;
 
 RETURN;
 END;
-$BODY$ LANGUAGE plpgsql VOLATILE;
+$BODY$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
