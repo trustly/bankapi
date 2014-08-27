@@ -105,7 +105,7 @@ def send_file(from_bank, to_bank, messagetype, filename):
     cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     messagehub_host, messagehub_port, messagehub_proto, messagehub_path = None, None, None, None
     try:
-        cur.execute("SELECT Protocol, Host, Port, Path FROM Banks WHERE BankID = %s", 
+        cur.execute("SELECT Protocol, Host, Port, Path FROM Get_Bank(%s)", 
             [to_bank]);
 
         sqldata = cur.fetchone()
@@ -189,9 +189,9 @@ def list_messages():
         cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cur.execute("SELECT DateStamp, MessageID, MessageType, FromBankID, ToBankID FROM List_Messages()")
 
-        print "{datestamp:19} {messageid:10} {messagetype:15.15}{frombankid:17.17}{tobankid:17.17}".format(datestamp='Date', messageid='ID', messagetype='Type', frombankid='From bank', tobankid='To bank')
+        print "{datestamp:19} {messageid:10} {messagetype:25.25}{frombankid:17.17}{tobankid:17.17}".format(datestamp='Date', messageid='ID', messagetype='Type', frombankid='From bank', tobankid='To bank')
         for sqldata in cur:
-            print "{datestamp:%Y-%m-%d %H:%M:%S} {messageid:10} {messagetype:15.15}{frombankid:17.17}{tobankid:17.17}".format(**dict(sqldata))
+            print "{datestamp:%Y-%m-%d %H:%M:%S} {messageid:10} {messagetype:25.25}{frombankid:17.17}{tobankid:17.17}".format(**dict(sqldata))
 
         print " %s messages" % (cur.rowcount)
 
