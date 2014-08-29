@@ -54,6 +54,8 @@ The details specific to OpenPGP are documented in
 
 8. The _ASCII Armor_, including _Armor Headers_, **MUST** be valid UTF-8.
 
+9. The _Armor Header_ "Comment", **MUST** be set to the message type.
+
 ## System design
 
 ![layout](https://raw.githubusercontent.com/trustly/bankapi/master/doc/BankAPI%20System%20Design.png)

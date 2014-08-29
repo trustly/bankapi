@@ -18,7 +18,10 @@ _FileID text;
 BEGIN
 
 _Cipherdata := dearmor(_Ciphertext);
-_MessageType := COALESCE(pgp_armor_header(_Ciphertext,'Comment'),'text/plain');
+_MessageType := pgp_armor_header(_Ciphertext,'Comment');
+IF _MessageType IS NULL THEN
+    RAISE EXCEPTION 'ERROR_MESSAGE_TYPE_UNDEFINED The PGP armor header "Comment" needs to be set to the message type';
+END IF;
 
 _MessageID := encode(digest(_Cipherdata, 'sha512'),'hex');
 
