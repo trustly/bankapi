@@ -29,7 +29,8 @@ Content-Type: text/plain
         if error is None:
             error = 'Unknown error'
 
-        data = "Status: %s %s" % (httperrorcode, error)
+        data = """Status: %s %s
+""" % (httperrorcode, error)
 
     print data
     debug_request('out', data)
