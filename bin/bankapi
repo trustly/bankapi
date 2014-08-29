@@ -189,9 +189,9 @@ def list_messages():
         cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cur.execute("SELECT DateStamp, MessageID, MessageType, FromBankID, ToBankID FROM List_Messages()")
 
-        print "{datestamp:19} {messageid:10} {messagetype:25.25}{frombankid:17.17}{tobankid:17.17}".format(datestamp='Date', messageid='ID', messagetype='Type', frombankid='From bank', tobankid='To bank')
+        print "{datestamp:19} {messageid:10} {messagetype:30.30}{frombankid:17.17}{tobankid:17.17}".format(datestamp='Date', messageid='ID', messagetype='Type', frombankid='From bank', tobankid='To bank')
         for sqldata in cur:
-            print "{datestamp:%Y-%m-%d %H:%M:%S} {messageid:10} {messagetype:25.25}{frombankid:17.17}{tobankid:17.17}".format(**dict(sqldata))
+            print "{datestamp:%Y-%m-%d %H:%M:%S} {messageid:10} {messagetype:30.30}{frombankid:17.17}{tobankid:17.17}".format(**dict(sqldata))
 
         print " %s messages" % (cur.rowcount)
 
