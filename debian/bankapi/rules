@@ -31,6 +31,7 @@ install:
 binary: binary-indep binary-arch
 	echo "Version: $(VERSION)" > "$(PACKAGEDIR)/DEBIAN/control"
 	cat "$(DEBIAN)/control" >> "$(PACKAGEDIR)/DEBIAN/control"
+	echo "/etc/apache2/sites-available/010-bankapi.conf" > "$(PACKAGEDIR)/DEBIAN/conffiles"
 	dpkg-deb -b "$(PACKAGEDIR)" "$(ROOT)"
 
 clean:
