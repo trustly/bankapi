@@ -1,15 +1,14 @@
 #!/bin/bash
 set -e
 
-
 case "$1" in
 	reconfigure)
-		rm -f "/etc/apache2/sites-enabled/010-bankapi.conf"
+		a2dissite "010-bankapi"
 		;;&
 	configure|reconfigure)
 		if [ ! -e "/etc/apache2/sites-enabled/010-bankapi.conf" ]; then
-			ln -s "../sites-available/010-bankapi.conf" "/etc/apache2/sites-enabled/010-bankapi.conf"
-			a2enmod cgi
+			a2ensite -q "010-bankapi"
+			a2enmod -q cgi
 			service apache2 restart
 		fi
 		;;
