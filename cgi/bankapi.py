@@ -6,25 +6,33 @@ import json
 import psycopg2
 import psycopg2.extras
 import re
+import datetime
+import os
 
 pg_connect_str = "dbname=bankapi"
 pg_conn = None
+
+debug_incoming_data = False
+debug_path = '/tmp/bankapi'
 
 def respond(result=None, error=None, httperrorcode=None):
     global pg_conn
 
     if result is not None:
-        print "Status: 200 OK"
-        print "Content-Type: text/plain"
-        print ""
-        print result
+        data =  """Status: 200 OK
+Content-Type: text/plain
+
+""" + result
     else:
         if httperrorcode is None:
             httperrorcode = 500
         if error is None:
             error = 'Unknown error'
 
-        print "Status: %s %s" % (httperrorcode, error)
+        data = "Status: %s %s" % (httperrorcode, error)
+
+    print data
+    debug_request('out', data)
 
     if pg_conn is not None:
         pg_conn.close()
@@ -33,6 +41,21 @@ def respond(result=None, error=None, httperrorcode=None):
 
 def error_log(s):
     sys.stderr.write("%s\n" % (s))
+
+def debug_request(extension, data):
+    global debug_incoming_data
+    global debug_path
+
+    if debug_incoming_data == True:
+        td = datetime.datetime.today()
+        path = debug_path + '/' + td.strftime('%Y%m%d')
+        filename = path + '/' + td.isoformat()
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        fh = open(filename + '.' + extension, 'w')
+        fh.write(data)
 
 try:
     pg_conn = psycopg2.connect(pg_connect_str)
@@ -47,6 +70,8 @@ except Exception as e:
 
 if indata is None or len(indata) == 0:
     respond(error='No data', httperrorcode=400)
+
+debug_request('in', indata)
 
 cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
