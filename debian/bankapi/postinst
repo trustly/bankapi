@@ -1,13 +1,25 @@
 #!/bin/bash
 set -e
 
+case $(/usr/sbin/apache2 -v | head -n1 | cut -f3 -d' ') in
+    Apache/2.2.*)
+        APACHESITE=010-bankapi
+        ;;
+    Apache/2.4.*)
+        APACHESITE=010-bankapi.conf
+        ;;
+    *)
+        APACHESITE=010-bankapi.conf
+        ;;
+esac
+
 case "$1" in
 	reconfigure)
-		a2dissite "010-bankapi.conf"
+		a2dissite "010-bankapi"
 		;;&
 	configure|reconfigure)
-		if [ ! -e "/etc/apache2/sites-enabled/010-bankapi.conf" ]; then
-			a2ensite -q "010-bankapi.conf"
+		if [ ! -e "/etc/apache2/sites-enabled/$APACHESITE" ]; then
+			a2ensite -q "010-bankapi"
 			a2enmod -q cgi
 			service apache2 restart
 		fi

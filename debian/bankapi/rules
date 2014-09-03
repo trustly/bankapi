@@ -6,6 +6,7 @@ ROOT=$(PWD)
 DEBIAN=$(ROOT)/debian/bankapi
 PACKAGEDIR=$(ROOT)/$(PACKAGE)-$(VERSION)
 CP=cp -p
+APACHEVERSION=$$(/usr/sbin/apache2 -v | head -n1 | cut -f2 -d/ | cut -f1-2 -d.)
 
 build: clean
 	mkdir -p "$(PACKAGEDIR)" \
@@ -17,7 +18,11 @@ build: clean
 	$(CP) "$(ROOT)/install.sql" "$(PACKAGEDIR)/usr/share/bankapi/install.sql"
 	cat "$(ROOT)/misc/roles.sql" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"
 	cat "$(ROOT)/misc/pg_hba.sql" >> "$(PACKAGEDIR)/usr/share/bankapi/install.sql"
-	$(CP) "$(ROOT)/etc/apache2/sites-available/010-bankapi.conf" "$(PACKAGEDIR)/etc/apache2/sites-available/010-bankapi.conf"
+	if [ $(APACHEVERSION) = '2.2' ]; then \
+		$(CP) "$(ROOT)/etc/apache2/sites-available/010-bankapi.conf" "$(PACKAGEDIR)/etc/apache2/sites-available/010-bankapi"; \
+	else \
+		$(CP) "$(ROOT)/etc/apache2/sites-available/010-bankapi.conf" "$(PACKAGEDIR)/etc/apache2/sites-available/010-bankapi.conf"; \
+	fi
 	$(CP) "$(ROOT)/cgi/bankapi.py" "$(PACKAGEDIR)/var/www/bankapi/bankapi.py"
 	$(CP) "$(ROOT)/bin/bankapi" "$(PACKAGEDIR)/usr/bin/bankapi"
 	$(CP) "$(DEBIAN)/postinst" "$(PACKAGEDIR)/DEBIAN/postinst"
@@ -31,7 +36,11 @@ install:
 binary: binary-indep binary-arch
 	echo "Version: $(VERSION)" > "$(PACKAGEDIR)/DEBIAN/control"
 	cat "$(DEBIAN)/control" >> "$(PACKAGEDIR)/DEBIAN/control"
-	echo "/etc/apache2/sites-available/010-bankapi.conf" > "$(PACKAGEDIR)/DEBIAN/conffiles"
+	if [ $(APACHEVERSION) = '2.2' ]; then \
+		echo "/etc/apache2/sites-available/010-bankapi" > "$(PACKAGEDIR)/DEBIAN/conffiles"; \
+	else \
+		echo "/etc/apache2/sites-available/010-bankapi.conf" > "$(PACKAGEDIR)/DEBIAN/conffiles"; \
+	fi 
 	dpkg-deb -b "$(PACKAGEDIR)" "$(ROOT)"
 
 clean:
