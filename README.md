@@ -197,7 +197,7 @@ packages names.
 This should produce two deb files, one for bankapi and one for the pgcrypto
 extension.
 
-### bankapi-0.1.deb
+### bankapi-1.0.deb
 
 Package contains the command line tools for sending messages
 (/usr/bin/bankapi), SQL needed for creating the bankapi in postgres and
