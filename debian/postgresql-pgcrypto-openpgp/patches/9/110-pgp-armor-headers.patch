@@ -288,7 +288,7 @@ index 8d794d3..4debd7e 100644
 +LANGUAGE C IMMUTABLE STRICT;
 +
 diff --git a/pgp-armor.c b/pgp-armor.c
-index 87adf91..f4b8632 100644
+index 87adf91..86a0810 100644
 --- a/pgp-armor.c
 +++ b/pgp-armor.c
 @@ -179,7 +179,7 @@ b64_dec_len(unsigned srclen)
@@ -333,7 +333,7 @@ index 87adf91..f4b8632 100644
  	n = b64_encode(src, len, pos);
  	pos += n;
  
-@@ -370,10 +387,115 @@ out:
+@@ -370,10 +387,116 @@ out:
  	return res;
  }
  
@@ -421,6 +421,7 @@ index 87adf91..f4b8632 100644
 +	{
 +		if (buf)
 +		{
++			/* 0-terminate the string for the caller */
 +			res = mbuf_append(buf, (uint8 *) "\x00", 1);
 +			if (res < 0)
 +				return res;
@@ -452,7 +453,7 @@ index 87adf91..f4b8632 100644
  
  unsigned
 diff --git a/pgp-pgsql.c b/pgp-pgsql.c
-index d4eec03..c251d3f 100644
+index d4eec03..fe4d20b 100644
 --- a/pgp-pgsql.c
 +++ b/pgp-pgsql.c
 @@ -31,8 +31,10 @@
@@ -581,7 +582,7 @@ index d4eec03..c251d3f 100644
  	if (res_len > guess_len)
  		ereport(ERROR,
  				(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
-@@ -890,6 +968,52 @@ pg_dearmor(PG_FUNCTION_ARGS)
+@@ -890,6 +968,50 @@ pg_dearmor(PG_FUNCTION_ARGS)
  	PG_RETURN_TEXT_P(res);
  }
  
@@ -592,19 +593,17 @@ index d4eec03..c251d3f 100644
 +	int			data_len,
 +				res;
 +	char	   *buf;
-+	char	   *key,
++	text	   *key,
 +			   *utf8key;
 +	int			buflen;
 +
 +	data = PG_GETARG_BYTEA_P(0);
 +	data_len = VARSIZE(data) - VARHDRSZ;
 +
-+	/* convert the key to UTF-8 */
-+	key = text_to_cstring(PG_GETARG_TEXT_PP(1));
-+	utf8key = pg_server_to_any(key, strlen(key), PG_UTF8);
-+
++	key = PG_GETARG_TEXT_P(1);
++	utf8key = convert_to_utf8(key);
 +	res = pgp_armor_header((uint8 *) VARDATA(data), data_len,
-+							utf8key, strlen(utf8key),
++							VARDATA(utf8key), VARSIZE(utf8key) - VARHDRSZ,
 +							(uint8 **) &buf, &buflen);
 +	if (res < 0)
 +		ereport(ERROR,
@@ -614,7 +613,7 @@ index d4eec03..c251d3f 100644
 +	PG_FREE_IF_COPY(data, 0);
 +	if (utf8key != key)
 +		pfree(utf8key);
-+	pfree(key);
++	PG_FREE_IF_COPY(key, 1);
 +	if (!buf)
 +		PG_RETURN_NULL();
 +	else
