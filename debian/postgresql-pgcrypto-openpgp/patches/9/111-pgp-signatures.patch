@@ -130,10 +130,10 @@ index 1fe0088..5395135 100644
 +
 diff --git a/expected/pgp-sign.out b/expected/pgp-sign.out
 new file mode 100644
-index 0000000..0cd3cb7
+index 0000000..ca46a27
 --- /dev/null
 +++ b/expected/pgp-sign.out
-@@ -0,0 +1,321 @@
+@@ -0,0 +1,337 @@
 +--
 +-- PGP sign
 +--
@@ -145,9 +145,9 @@ index 0000000..0cd3cb7
 +    from keytbl where keytbl.name = 'rsa2048') encrypted,
 +    lateral pgp_sym_signatures(encrypted.ciphertext, 'key')
 +    ;
-+      keyid       | digest | pubkeyalgo 
-+------------------+--------+------------
-+ 9DCF8E9C9BD31F24 | sha512 | rsa
++      keyid       | digest | pubkeyalgo | creation_time 
++------------------+--------+------------+---------------
++ 9DCF8E9C9BD31F24 | sha512 | rsa        | 
 +(1 row)
 +
 +select pgp_pub_signatures.* from
@@ -155,16 +155,16 @@ index 0000000..0cd3cb7
 +    from keytbl where keytbl.name = 'rsaenc2048') encrypted,
 +    lateral pgp_pub_signatures(encrypted.ciphertext, dearmor(encrypted.seckey))
 +    ;
-+      keyid       | digest | pubkeyalgo 
-+------------------+--------+------------
-+ C899EA9344195559 | sha512 | rsa
++      keyid       | digest | pubkeyalgo | creation_time 
++------------------+--------+------------+---------------
++ C899EA9344195559 | sha512 | rsa        | 
 +(1 row)
 +
 +-- test debug mode
 +select pgp_pub_signatures.* from
 +    (select pgp_pub_encrypt_sign_bytea('Secret.', dearmor(pubkey), dearmor(seckey)) as ciphertext
 +    from keytbl where keytbl.name = 'rsaenc2048') encrypted,
-+    lateral pgp_pub_signatures(encrypted.ciphertext, (select dearmor(seckey) from keytbl where keytbl.name='elg2048'), '', 'debug=1')
++    lateral pgp_pub_signatures(encrypted.ciphertext, (select dearmor(seckey) from keytbl where keytbl.name='elg2048'), '', false, 'debug=1')
 +    ;
 +NOTICE:  dbg: key_id's does not match
 +ERROR:  Wrong key
@@ -267,18 +267,34 @@ index 0000000..0cd3cb7
 + hello world
 +(1 row)
 +
++-- no details
 +select * from pgp_sym_signatures((select dearmor(data) from encdata where id=5), 'key');
-+      keyid       | digest | pubkeyalgo 
-+------------------+--------+------------
-+ 9DCF8E9C9BD31F24 | sha512 | rsa
-+ C899EA9344195559 | sha512 | rsa
++      keyid       | digest | pubkeyalgo | creation_time 
++------------------+--------+------------+---------------
++ 9DCF8E9C9BD31F24 | sha512 | rsa        | 
++ C899EA9344195559 | sha512 | rsa        | 
 +(2 rows)
 +
 +select * from pgp_pub_signatures((select dearmor(data) from encdata where id=6), (select dearmor(seckey) from keytbl where keytbl.name = 'rsaenc2048'));
-+      keyid       | digest | pubkeyalgo 
-+------------------+--------+------------
-+ 9DCF8E9C9BD31F24 | sha1   | rsa
-+ C899EA9344195559 | sha1   | rsa
++      keyid       | digest | pubkeyalgo | creation_time 
++------------------+--------+------------+---------------
++ 9DCF8E9C9BD31F24 | sha1   | rsa        | 
++ C899EA9344195559 | sha1   | rsa        | 
++(2 rows)
++
++-- with details; the signatures will appear in reverse order
++select * from pgp_sym_signatures((select dearmor(data) from encdata where id=5), 'key', true);
++      keyid       | digest | pubkeyalgo |        creation_time         
++------------------+--------+------------+------------------------------
++ C899EA9344195559 | sha512 | rsa        | Mon Aug 04 05:29:15 2014 PDT
++ 9DCF8E9C9BD31F24 | sha512 | rsa        | Mon Aug 04 05:29:15 2014 PDT
++(2 rows)
++
++select * from pgp_pub_signatures((select dearmor(data) from encdata where id=6), (select dearmor(seckey) from keytbl where keytbl.name = 'rsaenc2048'), '', true);
++      keyid       | digest | pubkeyalgo |        creation_time         
++------------------+--------+------------+------------------------------
++ C899EA9344195559 | sha1   | rsa        | Mon Aug 04 05:22:57 2014 PDT
++ 9DCF8E9C9BD31F24 | sha1   | rsa        | Mon Aug 04 05:22:57 2014 PDT
 +(2 rows)
 +
 +-- verify both signatures
@@ -608,10 +624,10 @@ index da016c0..c227bdd 100644
  
  #define GETBYTE(pf, dst) \
 diff --git a/pgcrypto_openpgp--1.2.sql b/pgcrypto_openpgp--1.2.sql
-index 4debd7e..bb4fb33 100644
+index 4debd7e..7152293 100644
 --- a/pgcrypto_openpgp--1.2.sql
 +++ b/pgcrypto_openpgp--1.2.sql
-@@ -215,3 +215,210 @@ RETURNS text
+@@ -215,3 +215,226 @@ RETURNS text
  AS 'MODULE_PATHNAME', 'pgp_armor_header_w'
  LANGUAGE C IMMUTABLE STRICT;
  
@@ -787,15 +803,23 @@ index 4debd7e..bb4fb33 100644
 +-- pgp_sym_signatures(data, key)
 +--
 +CREATE FUNCTION pgp_sym_signatures(bytea, text)
-+RETURNS TABLE (keyid text, digest text, pubkeyalgo text)
++RETURNS TABLE (keyid text, digest text, pubkeyalgo text, creation_time timestamptz)
 +AS 'MODULE_PATHNAME', 'pgp_sym_signatures_w'
 +LANGUAGE C IMMUTABLE STRICT;
 +
 +--
-+-- pgp_sym_signatures(data, key, args)
++-- pgp_sym_signatures(data, key, details)
 +--
-+CREATE FUNCTION pgp_sym_signatures(bytea, text, text)
-+RETURNS TABLE (keyid text, digest text, pubkeyalgo text)
++CREATE FUNCTION pgp_sym_signatures(bytea, text, boolean)
++RETURNS TABLE (keyid text, digest text, pubkeyalgo text, creation_time timestamptz)
++AS 'MODULE_PATHNAME', 'pgp_sym_signatures_w'
++LANGUAGE C IMMUTABLE STRICT;
++
++--
++-- pgp_sym_signatures(data, key, details, args)
++--
++CREATE FUNCTION pgp_sym_signatures(bytea, text, boolean, text)
++RETURNS TABLE (keyid text, digest text, pubkeyalgo text, creation_time timestamptz)
 +AS 'MODULE_PATHNAME', 'pgp_sym_signatures_w'
 +LANGUAGE C IMMUTABLE STRICT;
 +
@@ -803,7 +827,7 @@ index 4debd7e..bb4fb33 100644
 +-- pgp_pub_signatures(data, key)
 +--
 +CREATE FUNCTION pgp_pub_signatures(bytea, bytea)
-+RETURNS TABLE (keyid text, digest text, pubkeyalgo text)
++RETURNS TABLE (keyid text, digest text, pubkeyalgo text, creation_time timestamptz)
 +AS 'MODULE_PATHNAME', 'pgp_pub_signatures_w'
 +LANGUAGE C IMMUTABLE STRICT;
 +
@@ -811,15 +835,23 @@ index 4debd7e..bb4fb33 100644
 +-- pgp_pub_signatures(data, key, psw)
 +--
 +CREATE FUNCTION pgp_pub_signatures(bytea, bytea, text)
-+RETURNS TABLE (keyid text, digest text, pubkeyalgo text)
++RETURNS TABLE (keyid text, digest text, pubkeyalgo text, creation_time timestamptz)
 +AS 'MODULE_PATHNAME', 'pgp_pub_signatures_w'
 +LANGUAGE C IMMUTABLE STRICT;
 +
 +--
-+-- pgp_pub_signatures(data, key, psw, args)
++-- pgp_pub_signatures(data, key, psw, details)
 +--
-+CREATE FUNCTION pgp_pub_signatures(bytea, bytea, text, text)
-+RETURNS TABLE (keyid text, digest text, pubkeyalgo text)
++CREATE FUNCTION pgp_pub_signatures(bytea, bytea, text, boolean)
++RETURNS TABLE (keyid text, digest text, pubkeyalgo text, creation_time timestamptz)
++AS 'MODULE_PATHNAME', 'pgp_pub_signatures_w'
++LANGUAGE C IMMUTABLE STRICT;
++
++--
++-- pgp_pub_signatures(data, key, psw, details, args)
++--
++CREATE FUNCTION pgp_pub_signatures(bytea, bytea, text, boolean, text)
++RETURNS TABLE (keyid text, digest text, pubkeyalgo text, creation_time timestamptz)
 +AS 'MODULE_PATHNAME', 'pgp_pub_signatures_w'
 +LANGUAGE C IMMUTABLE STRICT;
 diff --git a/pgp-decrypt.c b/pgp-decrypt.c
@@ -1220,7 +1252,7 @@ index 3b9b5d2..78dc9eb 100644
  	/* text conversion? */
  	if (ctx->text_mode && ctx->convert_crlf)
 diff --git a/pgp-info.c b/pgp-info.c
-index b75266f..e44d9bc 100644
+index b75266f..15d5a13 100644
 --- a/pgp-info.c
 +++ b/pgp-info.c
 @@ -49,17 +49,18 @@ read_pubkey_keyid(PullFilter *pkt, uint8 *keyid_buf)
@@ -1244,22 +1276,25 @@ index b75266f..e44d9bc 100644
  	}
  
  err:
-@@ -102,14 +103,197 @@ print_key(uint8 *keyid, char *dst)
+@@ -102,14 +103,215 @@ print_key(uint8 *keyid, char *dst)
  	return 8 * 2;
  }
  
 -static const uint8 any_key[] =
 -{0, 0, 0, 0, 0, 0, 0, 0};
-+typedef int (*sig_key_cb_type)(void *opaque, PGP_Signature *sig);
++typedef int (*signature_cb_type)(void *opaque, PGP_Signature *sig);
 +
 +static int
-+extract_signature_keys(PGP_Context *ctx, PullFilter *src, void *opaque,
-+					   sig_key_cb_type sig_key_cb, int allow_compr);
++extract_signatures(PGP_Context *ctx, PullFilter *src, void *opaque,
++				   signature_cb_type sig_cb,
++				   int extract_details,
++				   int allow_compr);
 +
 +
 +static int
-+read_signature_keys_from_compressed_data(PGP_Context *ctx, PullFilter *pkt,
-+										 void *opaque, sig_key_cb_type sig_key_cb)
++read_signatures_from_compressed_data(PGP_Context *ctx, PullFilter *pkt,
++									 void *opaque, signature_cb_type sig_key_cb,
++									 int extract_details)
 +{
 +	int res;
 +	uint8 type;
@@ -1271,7 +1306,8 @@ index b75266f..e44d9bc 100644
 +	switch (type)
 +	{
 +		case PGP_COMPR_NONE:
-+			res = extract_signature_keys(ctx, pf_decompr, opaque, sig_key_cb, 0);
++			res = extract_signatures(ctx, pf_decompr, opaque,
++									 sig_key_cb, extract_details, 0);
 +			break;
 +
 +		case PGP_COMPR_ZIP:
@@ -1279,18 +1315,19 @@ index b75266f..e44d9bc 100644
 +			res = pgp_decompress_filter(&pf_decompr, ctx, pkt);
 +			if (res >= 0)
 +			{
-+				res = extract_signature_keys(ctx, pf_decompr, opaque, sig_key_cb, 0);
++				res = extract_signatures(ctx, pf_decompr, opaque,
++										 sig_key_cb, extract_details, 0);
 +				pullf_free(pf_decompr);
 +			}
 +			break;
 +
 +		case PGP_COMPR_BZIP2:
-+			px_debug("read_signature_keys_from_compressed_data: bzip2 unsupported");
++			px_debug("read_signatures_from_compressed_data: bzip2 unsupported");
 +			res = PXE_PGP_UNSUPPORTED_COMPR;
 +			break;
 +
 +		default:
-+			px_debug("read_signature_keys_from_compressed_data: unknown compr type");
++			px_debug("read_signatures_from_compressed_data: unknown compr type");
 +			res = PXE_PGP_CORRUPT_DATA;
 +	}
 +
@@ -1298,8 +1335,10 @@ index b75266f..e44d9bc 100644
 +}
 +
 +static int
-+extract_signature_keys(PGP_Context *ctx, PullFilter *src, void *opaque,
-+					   sig_key_cb_type sig_key_cb, int allow_compr)
++extract_signatures(PGP_Context *ctx, PullFilter *src, void *opaque,
++				   signature_cb_type sig_cb,
++				   int extract_details,
++				   int allow_compr)
 +{
 +	int			res;
 +	int			len;
@@ -1328,12 +1367,12 @@ index b75266f..e44d9bc 100644
 +			case PGP_PKT_SIGNATURE:
 +				res = pgp_parse_signature(ctx, &sig, pkt, NULL);
 +				if (res >= 0)
-+					res = sig_key_cb(opaque, sig);
++					res = sig_cb(opaque, sig);
 +				break;
 +			case PGP_PKT_ONEPASS_SIGNATURE:
 +				res = pgp_parse_onepass_signature(ctx, &sig, pkt);
 +				if (res >= 0)
-+					res = sig_key_cb(opaque, sig);
++					res = sig_cb(opaque, sig);
 +				break;
 +			case PGP_PKT_COMPRESSED_DATA:
 +				if (!allow_compr)
@@ -1342,24 +1381,33 @@ index b75266f..e44d9bc 100644
 +					res = PXE_PGP_CORRUPT_DATA;
 +				}
 +				else
-+					res = read_signature_keys_from_compressed_data(ctx, pkt, opaque, sig_key_cb);
-+				/* fallthrough */
++					res = read_signatures_from_compressed_data(ctx, pkt, opaque,
++															   sig_cb, extract_details);
++				/*
++				 * We're assuming that there will only ever be a single data
++				 * packet, compressed or otherwise.
++				 */
++				if (!extract_details)
++					done = 1;
++				break;
 +			case PGP_PKT_LITERAL_DATA:
 +			case PGP_PKT_MDC:
 +				/*
-+				 * We never look for signatures beyond the data, as the
-+				 * decryption code doesn't, either.  We're also assuming that
-+				 * there will only ever be a single data packet, compressed or
-+				 * otherwise.
++				 * If extract_details is not specified, we never look for
++				 * signatures beyond the data as the decryption code doesn't,
++				 * either.
 +				 */
-+				done = 1;
++				if (!extract_details)
++					done = 1;
++				else
++					res = pgp_skip_packet(pkt);
 +				break;
 +
 +			case PGP_PKT_TRUST:
 +				res = pgp_skip_packet(pkt);
 +				break;
 +			default:
-+				px_debug("extract_signature_keys: unexpected tag %d", tag);
++				px_debug("extract_signatures: unexpected tag %d", tag);
 +				res = PXE_PGP_CORRUPT_DATA;
 +		}
 +
@@ -1380,21 +1428,22 @@ index b75266f..e44d9bc 100644
  
  /*
 - * dst should have room for 17 bytes
-+ * Set up everything needed to decrypt the data and to extract out all the
-+ * signatures.
++ * Set up everything needed to decrypt the data and extract information about
++ * the signatures.
   */
 -int
 -pgp_get_keyid(MBuf *pgp_data, char *dst)
 +static int
-+read_signature_keys_from_data(PGP_Context *ctx, PullFilter *pkt, int tag,
-+							  void *opaque, sig_key_cb_type sig_key_cb)
++read_signatures_from_data(PGP_Context *ctx, PullFilter *pkt, int tag, void *opaque,
++						  signature_cb_type sig_key_cb,
++						  int extract_details)
 +{
-+	int res;
-+	PGP_CFB *cfb = NULL;
++	int			res;
++	int			resync;
++	PGP_CFB	   *cfb = NULL;
 +	PullFilter *pf_decrypt = NULL;
 +	PullFilter *pf_prefix = NULL;
 +	PullFilter *pf_mdc = NULL;
-+	int resync;
 +
 +	if (tag == PGP_PKT_SYMENCRYPTED_DATA_MDC)
 +	{
@@ -1403,7 +1452,7 @@ index b75266f..e44d9bc 100644
 +		GETBYTE(pkt, ver);
 +		if (ver != 1)
 +		{
-+			px_debug("extract_signature_keys: pkt ver != 1");
++			px_debug("read_signature_from_data: pkt ver != 1");
 +			return PXE_PGP_CORRUPT_DATA;
 +		}
 +		resync = 0;
@@ -1424,7 +1473,7 @@ index b75266f..e44d9bc 100644
 +	if (res < 0)
 +		goto out;
 +
-+	res = extract_signature_keys(ctx, pf_prefix, opaque, sig_key_cb, 1);
++	res = extract_signatures(ctx, pf_prefix, opaque, sig_key_cb, extract_details, 1);
 +
 +out:
 +	if (pf_prefix)
@@ -1443,11 +1492,12 @@ index b75266f..e44d9bc 100644
 +get_key_information(PGP_Context *ctx, MBuf *pgp_data, int want_main_key,
 +					void *opaque,
 +					int (*key_cb)(void *opaque, uint8 keyid[8]),
-+					sig_key_cb_type sig_key_cb)
++					signature_cb_type sig_cb,
++					int extract_details)
  {
  	int			res;
  	PullFilter *src;
-@@ -122,6 +306,7 @@ pgp_get_keyid(MBuf *pgp_data, char *dst)
+@@ -122,6 +324,7 @@ pgp_get_keyid(MBuf *pgp_data, char *dst)
  	int			got_data = 0;
  	uint8		keyid_buf[8];
  	int			got_main_key = 0;
@@ -1455,7 +1505,7 @@ index b75266f..e44d9bc 100644
  
  
  	res = pullf_create_mbuf_reader(&src, pgp_data);
-@@ -141,36 +326,62 @@ pgp_get_keyid(MBuf *pgp_data, char *dst)
+@@ -141,36 +344,57 @@ pgp_get_keyid(MBuf *pgp_data, char *dst)
  		{
  			case PGP_PKT_SECRET_KEY:
  			case PGP_PKT_PUBLIC_KEY:
@@ -1493,7 +1543,7 @@ index b75266f..e44d9bc 100644
 +				break;
 +			case PGP_PKT_SYMENCRYPTED_SESSKEY:
 +				got_symenc_key++;
-+				if (sig_key_cb)
++				if (sig_cb)
 +					res = pgp_parse_symenc_sesskey(ctx, pkt);
 +				else
 +					res = pgp_skip_packet(pkt);
@@ -1501,7 +1551,7 @@ index b75266f..e44d9bc 100644
  			case PGP_PKT_PUBENCRYPTED_SESSKEY:
  				got_pubenc_key++;
 -				res = read_pubenc_keyid(pkt, keyid_buf);
-+				if (sig_key_cb)
++				if (sig_cb)
 +					res = pgp_parse_pubenc_sesskey(ctx, pkt);
 +				else
 +					res = read_pubenc_keyid(pkt, keyid_buf);
@@ -1514,26 +1564,21 @@ index b75266f..e44d9bc 100644
 +				 * encrypted data.  Otherwise we're done.
 +				 */
  				got_data = 1;
-+				if (sig_key_cb)
-+					res = read_signature_keys_from_data(ctx, pkt, tag, opaque, sig_key_cb);
++				if (sig_cb)
++					res = read_signatures_from_data(ctx, pkt, tag, opaque, sig_cb, extract_details);
  				break;
 -			case PGP_PKT_SYMENCRYPTED_SESSKEY:
 -				got_symenc_key++;
 -				/* fallthru */
  			case PGP_PKT_SIGNATURE:
-+				if (sig_key_cb)
-+				{
-+					res = pgp_parse_signature(ctx, &sig, pkt, NULL);
-+					if (res >= 0)
-+						res = sig_key_cb(opaque, sig);
-+				}
-+				else
-+					res = pgp_skip_packet(pkt);
-+				break;
++				/*
++				 * We ignore signatures not part of the encrypted data since we
++				 * won't use them anyway.
++				 */
  			case PGP_PKT_MARKER:
  			case PGP_PKT_TRUST:
  			case PGP_PKT_USER_ID:
-@@ -185,6 +396,9 @@ pgp_get_keyid(MBuf *pgp_data, char *dst)
+@@ -185,6 +409,9 @@ pgp_get_keyid(MBuf *pgp_data, char *dst)
  		if (pkt)
  			pullf_free(pkt);
  		pkt = NULL;
@@ -1543,7 +1588,7 @@ index b75266f..e44d9bc 100644
  
  		if (res < 0 || got_data)
  			break;
-@@ -210,26 +424,88 @@ pgp_get_keyid(MBuf *pgp_data, char *dst)
+@@ -210,26 +437,106 @@ pgp_get_keyid(MBuf *pgp_data, char *dst)
  	/*
  	 * if still ok, look what we got
  	 */
@@ -1613,20 +1658,34 @@ index b75266f..e44d9bc 100644
 +int
 +pgp_get_keyid(int want_main_key, MBuf *pgp_data, char *dst)
 +{
-+	return get_key_information(NULL, pgp_data, want_main_key, dst, get_keyid_cb, NULL);
++	return get_key_information(NULL, pgp_data, want_main_key, dst, get_keyid_cb, NULL, 0);
 +}
 +
-+struct GetSignatureKeyCtx
++struct GetSignatureInfoCtx
 +{
-+	int (*cb)(void *opaque, PGP_Signature *sig, char *keyid);
-+	void *opaque;
++	int   (*cb)(void *opaque, PGP_Signature *sig, char *keyid);
++	void   *opaque;
++	int		extract_details;
 +};
 +
 +static int
-+get_signature_key_cb(void *opaque, PGP_Signature *sig)
++get_signature_info_cb(void *opaque, PGP_Signature *sig)
 +{
 +	char keyid[17];
-+	struct GetSignatureKeyCtx *ctx = opaque;
++	struct GetSignatureInfoCtx *ctx = opaque;
++
++	/* ignore signatures not used for literal data */
++	if (sig->type != PGP_SIGTYP_BINARY &&
++		sig->type != PGP_SIGTYP_TEXT)
++		return 0;
++
++	/*
++	 * Also skip one-pass signatures if we're extracting details; there should
++	 * be a corresponding signature packet after the data with all the details.
++	 */
++	if (sig->onepass && ctx->extract_details)
++		return 0;
++
 +	if (memcmp(sig->keyid, any_key, 8) == 0)
 +		memcpy(keyid, "ANYKEY", 7);
 +	else
@@ -1636,30 +1695,35 @@ index b75266f..e44d9bc 100644
 +
 +int
 +pgp_get_signatures(PGP_Context *ctx, MBuf *pgp_data, void *opaque,
-+				   int (*cb)(void *opaque, PGP_Signature *sig, char *keyid))
++				   int (*cb)(void *opaque, PGP_Signature *sig, char *keyid),
++				   int extract_details)
 +{
-+	struct GetSignatureKeyCtx cbctx;
++	struct GetSignatureInfoCtx cbctx;
 +
 +	memset(&cbctx, 0, sizeof(cbctx));
 +	cbctx.cb = cb;
 +	cbctx.opaque = opaque;
-+	return get_key_information(ctx, pgp_data, 0, &cbctx, NULL, get_signature_key_cb);
++	cbctx.extract_details = extract_details;
++	return get_key_information(ctx, pgp_data, 0, &cbctx, NULL,
++							   get_signature_info_cb, extract_details);
 +}
++
 diff --git a/pgp-pgsql.c b/pgp-pgsql.c
-index c251d3f..532d70a 100644
+index c251d3f..b0cbe63 100644
 --- a/pgp-pgsql.c
 +++ b/pgp-pgsql.c
-@@ -35,6 +35,9 @@
+@@ -35,6 +35,10 @@
  #include "mb/pg_wchar.h"
  #include "utils/builtins.h"
  #include "utils/array.h"
 +#include "funcapi.h"
 +#include "utils/memutils.h"
++#include "utils/timestamp.h"
 +#include "miscadmin.h"
  
  #include "mbuf.h"
  #include "px.h"
-@@ -45,15 +48,29 @@
+@@ -45,15 +49,29 @@
   */
  Datum		pgp_sym_encrypt_text(PG_FUNCTION_ARGS);
  Datum		pgp_sym_encrypt_bytea(PG_FUNCTION_ARGS);
@@ -1689,7 +1753,7 @@ index c251d3f..532d70a 100644
  
  Datum		pg_armor(PG_FUNCTION_ARGS);
  Datum		pg_dearmor(PG_FUNCTION_ARGS);
-@@ -63,15 +80,26 @@ Datum		pgp_armor_header_w(PG_FUNCTION_ARGS);
+@@ -63,15 +81,26 @@ Datum		pgp_armor_header_w(PG_FUNCTION_ARGS);
  
  PG_FUNCTION_INFO_V1(pgp_sym_encrypt_bytea);
  PG_FUNCTION_INFO_V1(pgp_sym_encrypt_text);
@@ -1716,7 +1780,7 @@ index c251d3f..532d70a 100644
  
  PG_FUNCTION_INFO_V1(pg_armor);
  PG_FUNCTION_INFO_V1(pg_dearmor);
-@@ -183,6 +211,7 @@ struct debug_expect
+@@ -183,6 +212,7 @@ struct debug_expect
  	int			debug;
  	int			expect;
  	int			cipher_algo;
@@ -1724,7 +1788,7 @@ index c251d3f..532d70a 100644
  	int			s2k_mode;
  	int			s2k_cipher_algo;
  	int			s2k_digest_algo;
-@@ -198,6 +227,7 @@ fill_expect(struct debug_expect * ex, int text_mode)
+@@ -198,6 +228,7 @@ fill_expect(struct debug_expect * ex, int text_mode)
  	ex->debug = 0;
  	ex->expect = 0;
  	ex->cipher_algo = -1;
@@ -1732,7 +1796,7 @@ index c251d3f..532d70a 100644
  	ex->s2k_mode = -1;
  	ex->s2k_cipher_algo = -1;
  	ex->s2k_digest_algo = -1;
-@@ -220,6 +250,7 @@ static void
+@@ -220,6 +251,7 @@ static void
  check_expect(PGP_Context *ctx, struct debug_expect * ex)
  {
  	EX_CHECK(cipher_algo);
@@ -1740,7 +1804,7 @@ index c251d3f..532d70a 100644
  	EX_CHECK(s2k_mode);
  	EX_CHECK(s2k_digest_algo);
  	EX_CHECK(use_sess_key);
-@@ -244,6 +275,8 @@ set_arg(PGP_Context *ctx, char *key, char *val,
+@@ -244,6 +276,8 @@ set_arg(PGP_Context *ctx, char *key, char *val,
  
  	if (strcmp(key, "cipher-algo") == 0)
  		res = pgp_set_cipher_algo(ctx, val);
@@ -1749,7 +1813,7 @@ index c251d3f..532d70a 100644
  	else if (strcmp(key, "disable-mdc") == 0)
  		res = pgp_disable_mdc(ctx, atoi(val));
  	else if (strcmp(key, "sess-key") == 0)
-@@ -270,6 +303,11 @@ set_arg(PGP_Context *ctx, char *key, char *val,
+@@ -270,6 +304,11 @@ set_arg(PGP_Context *ctx, char *key, char *val,
  		ex->expect = 1;
  		ex->cipher_algo = pgp_get_cipher_code(val);
  	}
@@ -1761,7 +1825,7 @@ index c251d3f..532d70a 100644
  	else if (ex != NULL && strcmp(key, "expect-disable-mdc") == 0)
  	{
  		ex->expect = 1;
-@@ -435,7 +473,8 @@ init_work(PGP_Context **ctx_p, int is_text,
+@@ -435,7 +474,8 @@ init_work(PGP_Context **ctx_p, int is_text,
  
  static bytea *
  encrypt_internal(int is_pubenc, int is_text,
@@ -1771,7 +1835,7 @@ index c251d3f..532d70a 100644
  {
  	MBuf	   *src,
  			   *dst;
-@@ -480,22 +519,46 @@ encrypt_internal(int is_pubenc, int is_text,
+@@ -480,22 +520,46 @@ encrypt_internal(int is_pubenc, int is_text,
  		MBuf	   *kbuf = create_mbuf_from_vardata(key);
  
  		err = pgp_set_pubkey(ctx, kbuf,
@@ -1821,7 +1885,7 @@ index c251d3f..532d70a 100644
  	if (err)
  	{
  		if (ex.debug)
-@@ -528,7 +591,7 @@ encrypt_internal(int is_pubenc, int is_text,
+@@ -528,7 +592,7 @@ encrypt_internal(int is_pubenc, int is_text,
  
  static bytea *
  decrypt_internal(int is_pubenc, int need_text, text *data,
@@ -1830,7 +1894,7 @@ index c251d3f..532d70a 100644
  {
  	int			err;
  	MBuf	   *src = NULL,
-@@ -568,25 +631,47 @@ decrypt_internal(int is_pubenc, int need_text, text *data,
+@@ -568,25 +632,47 @@ decrypt_internal(int is_pubenc, int need_text, text *data,
  			psw_len = VARSIZE(keypsw) - VARHDRSZ;
  		}
  		kbuf = create_mbuf_from_vardata(key);
@@ -1885,24 +1949,24 @@ index c251d3f..532d70a 100644
  	if (ex.expect)
  		check_expect(ctx, &ex);
  
-@@ -636,6 +721,142 @@ out:
+@@ -636,6 +722,160 @@ out:
  	return res;
  }
  
-+struct MaterializeSignatureKeyCtx
++struct MaterializeSignatureCtx
 +{
 +	Tuplestorestate *tupstore;
 +	TupleDesc tupdesc;
 +};
 +
 +static int
-+materialize_signature_key_cb(void *opaque, PGP_Signature *sig, char *keyid)
++materialize_signature_cb(void *opaque, PGP_Signature *sig, char *keyid)
 +{
-+	struct MaterializeSignatureKeyCtx *ctx = opaque;
++	struct MaterializeSignatureCtx *ctx = opaque;
 +	const char *digestalgo;
 +	const char *pubkeyalgo;
-+	Datum		values[3];
-+	bool		isnull[3] = { false, false, false };
++	Datum		values[4];
++	bool		isnull[4] = { false, false, false, true };
 +
 +	digestalgo = pgp_get_digest_name(sig->digest_algo);
 +	if (!digestalgo)
@@ -1924,19 +1988,36 @@ index c251d3f..532d70a 100644
 +	values[0] = CStringGetTextDatum(keyid);
 +	values[1] = CStringGetTextDatum(digestalgo);
 +	values[2] = CStringGetTextDatum(pubkeyalgo);
++	/*
++	 * If this isn't a one-pass signature, we also know the creation time of
++	 * the signature.
++	 */
++	if (!sig->onepass)
++	{
++		time_t t;
++
++		isnull[3] = false;
++		/* unsigned big endian */
++		t = sig->creation_time[0] << 24;
++		t += sig->creation_time[1] << 16;
++		t += sig->creation_time[2] << 8;
++		t += sig->creation_time[3];
++		values[3] = time_t_to_timestamptz(t);
++	}
 +	tuplestore_putvalues(ctx->tupstore, ctx->tupdesc, values, isnull);
 +	return 0;
 +}
 +
 +static int
-+materialize_signature_keys(int is_pubenc, text *data, text *key, text *keypsw,
-+						   text *arg, Tuplestorestate *tupstore, TupleDesc tupdesc)
++materialize_signatures(int is_pubenc, text *data, text *key, text *keypsw,
++					   text *arg, Tuplestorestate *tupstore, TupleDesc tupdesc,
++					   int extract_details)
 +{
 +	PGP_Context	   *ctx = NULL;
 +	MBuf		   *src = NULL;
 +	int				err;
 +	struct debug_expect ex;
-+	struct MaterializeSignatureKeyCtx cbctx;
++	struct MaterializeSignatureCtx cbctx;
 +
 +	init_work(&ctx, 0, arg, &ex);
 +	if (is_pubenc)
@@ -1961,7 +2042,8 @@ index c251d3f..532d70a 100644
 +	cbctx.tupdesc = tupdesc;
 +
 +	src = create_mbuf_from_vardata(data);
-+	err = pgp_get_signatures(ctx, src, &cbctx, materialize_signature_key_cb);
++	err = pgp_get_signatures(ctx, src, &cbctx, materialize_signature_cb,
++							 extract_details);
 +
 +out:
 +	if (src)
@@ -1980,8 +2062,8 @@ index c251d3f..532d70a 100644
 +}
 +
 +static int
-+signature_keys_internal(int is_pubenc, text *data, text *key, text *keypsw,
-+						text *arg, ReturnSetInfo *rsinfo)
++extract_signatures_internal(int is_pubenc, text *data, text *key, text *keypsw,
++							text *arg, ReturnSetInfo *rsinfo, int extract_details)
 +{
 +	MemoryContext	oldcxt;
 +	int				res;
@@ -2004,15 +2086,15 @@ index c251d3f..532d70a 100644
 +
 +	/* get the requested return tuple description */
 +	tupdesc = CreateTupleDescCopy(rsinfo->expectedDesc);
-+	if (tupdesc->natts != 3)
++	if (tupdesc->natts != 4)
 +		elog(ERROR, "unexpected natts %d", tupdesc->natts);
 +
 +	tupstore =
 +		tuplestore_begin_heap(rsinfo->allowedModes & SFRM_Materialize_Random,
 +							  false, work_mem);
 +
-+	res = materialize_signature_keys(is_pubenc, data, key, keypsw,
-+									 arg, tupstore, tupdesc);
++	res = materialize_signatures(is_pubenc, data, key, keypsw,
++								 arg, tupstore, tupdesc, extract_details);
 +	if (res < 0)
 +		return PXE_BUG;
 +
@@ -2028,7 +2110,7 @@ index c251d3f..532d70a 100644
  /*
   * Wrappers for symmetric-key functions
   */
-@@ -652,7 +873,7 @@ pgp_sym_encrypt_bytea(PG_FUNCTION_ARGS)
+@@ -652,7 +892,7 @@ pgp_sym_encrypt_bytea(PG_FUNCTION_ARGS)
  	if (PG_NARGS() > 2)
  		arg = PG_GETARG_BYTEA_P(2);
  
@@ -2037,7 +2119,7 @@ index c251d3f..532d70a 100644
  
  	PG_FREE_IF_COPY(data, 0);
  	PG_FREE_IF_COPY(key, 1);
-@@ -674,7 +895,7 @@ pgp_sym_encrypt_text(PG_FUNCTION_ARGS)
+@@ -674,7 +914,7 @@ pgp_sym_encrypt_text(PG_FUNCTION_ARGS)
  	if (PG_NARGS() > 2)
  		arg = PG_GETARG_BYTEA_P(2);
  
@@ -2046,7 +2128,7 @@ index c251d3f..532d70a 100644
  
  	PG_FREE_IF_COPY(data, 0);
  	PG_FREE_IF_COPY(key, 1);
-@@ -683,6 +904,66 @@ pgp_sym_encrypt_text(PG_FUNCTION_ARGS)
+@@ -683,6 +923,66 @@ pgp_sym_encrypt_text(PG_FUNCTION_ARGS)
  	PG_RETURN_TEXT_P(res);
  }
  
@@ -2113,7 +2195,7 @@ index c251d3f..532d70a 100644
  
  Datum
  pgp_sym_decrypt_bytea(PG_FUNCTION_ARGS)
-@@ -697,7 +978,7 @@ pgp_sym_decrypt_bytea(PG_FUNCTION_ARGS)
+@@ -697,7 +997,7 @@ pgp_sym_decrypt_bytea(PG_FUNCTION_ARGS)
  	if (PG_NARGS() > 2)
  		arg = PG_GETARG_BYTEA_P(2);
  
@@ -2122,7 +2204,7 @@ index c251d3f..532d70a 100644
  
  	PG_FREE_IF_COPY(data, 0);
  	PG_FREE_IF_COPY(key, 1);
-@@ -719,7 +1000,7 @@ pgp_sym_decrypt_text(PG_FUNCTION_ARGS)
+@@ -719,7 +1019,7 @@ pgp_sym_decrypt_text(PG_FUNCTION_ARGS)
  	if (PG_NARGS() > 2)
  		arg = PG_GETARG_BYTEA_P(2);
  
@@ -2131,7 +2213,7 @@ index c251d3f..532d70a 100644
  
  	PG_FREE_IF_COPY(data, 0);
  	PG_FREE_IF_COPY(key, 1);
-@@ -728,6 +1009,66 @@ pgp_sym_decrypt_text(PG_FUNCTION_ARGS)
+@@ -728,6 +1028,66 @@ pgp_sym_decrypt_text(PG_FUNCTION_ARGS)
  	PG_RETURN_TEXT_P(res);
  }
  
@@ -2198,7 +2280,7 @@ index c251d3f..532d70a 100644
  /*
   * Wrappers for public-key functions
   */
-@@ -745,7 +1086,7 @@ pgp_pub_encrypt_bytea(PG_FUNCTION_ARGS)
+@@ -745,7 +1105,7 @@ pgp_pub_encrypt_bytea(PG_FUNCTION_ARGS)
  	if (PG_NARGS() > 2)
  		arg = PG_GETARG_BYTEA_P(2);
  
@@ -2207,7 +2289,7 @@ index c251d3f..532d70a 100644
  
  	PG_FREE_IF_COPY(data, 0);
  	PG_FREE_IF_COPY(key, 1);
-@@ -767,7 +1108,7 @@ pgp_pub_encrypt_text(PG_FUNCTION_ARGS)
+@@ -767,7 +1127,7 @@ pgp_pub_encrypt_text(PG_FUNCTION_ARGS)
  	if (PG_NARGS() > 2)
  		arg = PG_GETARG_BYTEA_P(2);
  
@@ -2216,7 +2298,7 @@ index c251d3f..532d70a 100644
  
  	PG_FREE_IF_COPY(data, 0);
  	PG_FREE_IF_COPY(key, 1);
-@@ -776,6 +1117,65 @@ pgp_pub_encrypt_text(PG_FUNCTION_ARGS)
+@@ -776,6 +1136,65 @@ pgp_pub_encrypt_text(PG_FUNCTION_ARGS)
  	PG_RETURN_TEXT_P(res);
  }
  
@@ -2282,7 +2364,7 @@ index c251d3f..532d70a 100644
  
  Datum
  pgp_pub_decrypt_bytea(PG_FUNCTION_ARGS)
-@@ -793,7 +1193,7 @@ pgp_pub_decrypt_bytea(PG_FUNCTION_ARGS)
+@@ -793,7 +1212,7 @@ pgp_pub_decrypt_bytea(PG_FUNCTION_ARGS)
  	if (PG_NARGS() > 3)
  		arg = PG_GETARG_BYTEA_P(3);
  
@@ -2291,7 +2373,7 @@ index c251d3f..532d70a 100644
  
  	PG_FREE_IF_COPY(data, 0);
  	PG_FREE_IF_COPY(key, 1);
-@@ -820,7 +1220,7 @@ pgp_pub_decrypt_text(PG_FUNCTION_ARGS)
+@@ -820,7 +1239,7 @@ pgp_pub_decrypt_text(PG_FUNCTION_ARGS)
  	if (PG_NARGS() > 3)
  		arg = PG_GETARG_BYTEA_P(3);
  
@@ -2300,7 +2382,7 @@ index c251d3f..532d70a 100644
  
  	PG_FREE_IF_COPY(data, 0);
  	PG_FREE_IF_COPY(key, 1);
-@@ -831,6 +1231,65 @@ pgp_pub_decrypt_text(PG_FUNCTION_ARGS)
+@@ -831,6 +1250,65 @@ pgp_pub_decrypt_text(PG_FUNCTION_ARGS)
  	PG_RETURN_TEXT_P(res);
  }
  
@@ -2366,7 +2448,7 @@ index c251d3f..532d70a 100644
  
  /*
   * Wrappers for PGP ascii armor
-@@ -1015,7 +1474,7 @@ pgp_armor_header_w(PG_FUNCTION_ARGS)
+@@ -1015,7 +1493,7 @@ pgp_armor_header_w(PG_FUNCTION_ARGS)
  
  
  /*
@@ -2375,19 +2457,22 @@ index c251d3f..532d70a 100644
   */
  
  Datum
-@@ -1030,7 +1489,7 @@ pgp_key_id_w(PG_FUNCTION_ARGS)
+@@ -1030,7 +1508,31 @@ pgp_key_id_w(PG_FUNCTION_ARGS)
  	buf = create_mbuf_from_vardata(data);
  	res = palloc(VARHDRSZ + 17);
  
 -	res_len = pgp_get_keyid(buf, VARDATA(res));
 +	res_len = pgp_get_keyid(0, buf, VARDATA(res));
- 	mbuf_free(buf);
- 	if (res_len < 0)
- 		ereport(ERROR,
-@@ -1041,3 +1500,89 @@ pgp_key_id_w(PG_FUNCTION_ARGS)
- 	PG_FREE_IF_COPY(data, 0);
- 	PG_RETURN_TEXT_P(res);
- }
++	mbuf_free(buf);
++	if (res_len < 0)
++		ereport(ERROR,
++				(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
++				 errmsg("%s", px_strerror(res_len))));
++	SET_VARSIZE(res, VARHDRSZ + res_len);
++
++	PG_FREE_IF_COPY(data, 0);
++	PG_RETURN_TEXT_P(res);
++}
 +
 +Datum
 +pgp_main_key_id_w(PG_FUNCTION_ARGS)
@@ -2402,16 +2487,13 @@ index c251d3f..532d70a 100644
 +	res = palloc(VARHDRSZ + 17);
 +
 +	res_len = pgp_get_keyid(1, buf, VARDATA(res));
-+	mbuf_free(buf);
-+	if (res_len < 0)
-+		ereport(ERROR,
-+				(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
-+				 errmsg("%s", px_strerror(res_len))));
-+	SET_VARSIZE(res, VARHDRSZ + res_len);
-+
-+	PG_FREE_IF_COPY(data, 0);
-+	PG_RETURN_TEXT_P(res);
-+}
+ 	mbuf_free(buf);
+ 	if (res_len < 0)
+ 		ereport(ERROR,
+@@ -1041,3 +1543,75 @@ pgp_key_id_w(PG_FUNCTION_ARGS)
+ 	PG_FREE_IF_COPY(data, 0);
+ 	PG_RETURN_TEXT_P(res);
+ }
 +
 +Datum
 +pgp_sym_signatures_w(PG_FUNCTION_ARGS)
@@ -2419,15 +2501,19 @@ index c251d3f..532d70a 100644
 +	bytea	   *data;
 +	text	   *psw = NULL,
 +			   *arg = NULL;
-+	int err;
++	int			err;
++	int			extract_details = 0;
 +
 +	data = PG_GETARG_BYTEA_P(0);
 +	psw = PG_GETARG_TEXT_P(1);
 +	if (PG_NARGS() > 2)
-+		arg = PG_GETARG_BYTEA_P(2);
++		extract_details = (int) DatumGetBool(PG_GETARG_BOOL(2));
++	if (PG_NARGS() > 3)
++		arg = PG_GETARG_BYTEA_P(3);
 +
-+	err = signature_keys_internal(0, data, psw, NULL, arg,
-+								  (ReturnSetInfo *) fcinfo->resultinfo);
++	err = extract_signatures_internal(0, data, psw, NULL, arg,
++									  (ReturnSetInfo *) fcinfo->resultinfo,
++									  extract_details);
 +
 +	if (err < 0)
 +		ereport(ERROR,
@@ -2436,8 +2522,9 @@ index c251d3f..532d70a 100644
 +
 +	PG_FREE_IF_COPY(data, 0);
 +	PG_FREE_IF_COPY(psw, 1);
-+	if (PG_NARGS() > 2)
-+		PG_FREE_IF_COPY(arg, 2);
++	/* no need to free the boolean */
++	if (PG_NARGS() > 3)
++		PG_FREE_IF_COPY(arg, 3);
 +	return (Datum) 0;
 +}
 +
@@ -2448,17 +2535,21 @@ index c251d3f..532d70a 100644
 +			   *key;
 +	text	   *keypsw = NULL,
 +			   *arg = NULL;
-+	int err;
++	int			err;
++	int			extract_details = 0;
 +
 +	data = PG_GETARG_BYTEA_P(0);
 +	key = PG_GETARG_BYTEA_P(1);
 +	if (PG_NARGS() > 2)
 +		keypsw = PG_GETARG_BYTEA_P(2);
 +	if (PG_NARGS() > 3)
-+		arg = PG_GETARG_BYTEA_P(3);
++		extract_details = (int) DatumGetBool(PG_GETARG_BOOL(3));
++	if (PG_NARGS() > 4)
++		arg = PG_GETARG_BYTEA_P(4);
 +
-+	err = signature_keys_internal(1, data, key, keypsw, arg,
-+								  (ReturnSetInfo *) fcinfo->resultinfo);
++	err = extract_signatures_internal(1, data, key, keypsw, arg,
++									  (ReturnSetInfo *) fcinfo->resultinfo,
++									  extract_details);
 +
 +	if (err < 0)
 +		ereport(ERROR,
@@ -2469,8 +2560,9 @@ index c251d3f..532d70a 100644
 +	PG_FREE_IF_COPY(key, 1);
 +	if (PG_NARGS() > 2)
 +		PG_FREE_IF_COPY(keypsw, 2);
-+	if (PG_NARGS() > 3)
-+		PG_FREE_IF_COPY(arg, 3);
++	/* no need to free the boolean */
++	if (PG_NARGS() > 4)
++		PG_FREE_IF_COPY(arg, 4);
 +
 +	return (Datum) 0;
 +}
@@ -2693,7 +2785,7 @@ index 9651d5e..9edd158 100644
  }
 diff --git a/pgp-sig.c b/pgp-sig.c
 new file mode 100644
-index 0000000..ba3a928
+index 0000000..176cea7
 --- /dev/null
 +++ b/pgp-sig.c
 @@ -0,0 +1,812 @@
@@ -3144,9 +3236,9 @@ index 0000000..ba3a928
 +static int
 +sigsubpkt_parser_next(struct SigSubPktParserState *pstate, struct SigSubPkt *subpkt)
 +{
-+	uint8 typ;
-+	int len;
-+	int res;
++	uint8	typ;
++	int		len;
++	int		res;
 +
 +	if (pstate->done || pstate->lr == NULL)
 +		return PXE_BUG;
@@ -3242,12 +3334,11 @@ index 0000000..ba3a928
 +static int
 +parse_v4_signature_header(PGP_Context *ctx, PullFilter *pkt, PGP_Signature *sig)
 +{
-+	int res;
-+
 +	struct SigSubPktParserState pstate;
-+	bool found_creation_time = false;
-+	bool found_issuer = false;
-+	PullFilter  *tr = NULL;
++	int			res;
++	bool		found_creation_time = false;
++	bool		found_issuer = false;
++	PullFilter *tr = NULL;
 +
 +	/*
 +	 * In a V4 header, we need to store everything up to the end of the hashed
@@ -3452,6 +3543,7 @@ index 0000000..ba3a928
 +	res = pgp_sig_create(&sig);
 +	if (res < 0)
 +		goto err;
++	sig->onepass = 0;
 +	sig->version = version;
 +	if (version == 3)
 +		res = parse_v3_signature_header(ctx, pkt, sig);
@@ -3642,7 +3734,7 @@ index b8a6bc4..46fcb7c 100644
  {
  	int			code = pgp_get_cipher_code(name);
 diff --git a/pgp.h b/pgp.h
-index b9574fa..6f06604 100644
+index b9574fa..d10fc18 100644
 --- a/pgp.h
 +++ b/pgp.h
 @@ -42,6 +42,7 @@ enum PGP_PKT_TYPE
@@ -3751,27 +3843,29 @@ index b9574fa..6f06604 100644
  int			pgp_set_s2k_mode(PGP_Context *ctx, int type);
  int			pgp_set_s2k_cipher_algo(PGP_Context *ctx, const char *name);
  int			pgp_set_s2k_digest_algo(PGP_Context *ctx, const char *name);
-@@ -248,10 +291,16 @@ int			pgp_set_unicode_mode(PGP_Context *ctx, int mode);
+@@ -248,10 +291,17 @@ int			pgp_set_unicode_mode(PGP_Context *ctx, int mode);
  int			pgp_get_unicode_mode(PGP_Context *ctx);
  
  int			pgp_set_symkey(PGP_Context *ctx, const uint8 *key, int klen);
 -int pgp_set_pubkey(PGP_Context *ctx, MBuf *keypkt,
 -			   const uint8 *key, int klen, int pubtype);
+-
+-int			pgp_get_keyid(MBuf *pgp_data, char *dst);
 +int			pgp_set_sigkey(PGP_Context *ctx, MBuf *keypkt,
 +						   const uint8 *key, int klen, int pubtype,
 +						   int encrypt);
 +int			pgp_set_pubkey(PGP_Context *ctx, MBuf *keypkt,
 +						   const uint8 *key, int klen, int pubtype,
 +						   int encrypt);
- 
--int			pgp_get_keyid(MBuf *pgp_data, char *dst);
++
 +int			pgp_get_keyid(int want_main_key, MBuf *pgp_data, char *dst);
 +int			pgp_get_signatures(PGP_Context *ctx, MBuf *pgp_data, void *opaque,
-+							   int (*cb)(void *opaque, PGP_Signature *sig, char *keyid));
++							   int (*cb)(void *opaque, PGP_Signature *sig, char *keyid),
++							   int extract_details);
  
  /* internal functions */
  
-@@ -287,6 +336,8 @@ int			pgp_key_alloc(PGP_PubKey **pk_p);
+@@ -287,6 +337,8 @@ int			pgp_key_alloc(PGP_PubKey **pk_p);
  void		pgp_key_free(PGP_PubKey *pk);
  int			_pgp_read_public_key(PullFilter *pkt, PGP_PubKey **pk_p);
  
@@ -3780,7 +3874,7 @@ index b9574fa..6f06604 100644
  int			pgp_parse_pubenc_sesskey(PGP_Context *ctx, PullFilter *pkt);
  int pgp_create_pkt_reader(PullFilter **pf_p, PullFilter *src, int len,
  					  int pkttype, PGP_Context *ctx);
-@@ -299,6 +350,14 @@ int			pgp_expect_packet_end(PullFilter *pkt);
+@@ -299,6 +351,14 @@ int			pgp_expect_packet_end(PullFilter *pkt);
  int			pgp_write_pubenc_sesskey(PGP_Context *ctx, PushFilter *dst);
  int			pgp_create_pkt_writer(PushFilter *dst, int tag, PushFilter **res_p);
  
@@ -3795,7 +3889,7 @@ index b9574fa..6f06604 100644
  int			pgp_mpi_alloc(int bits, PGP_MPI **mpi);
  int			pgp_mpi_create(uint8 *data, int bits, PGP_MPI **mpi);
  int			pgp_mpi_free(PGP_MPI *mpi);
-@@ -315,3 +374,4 @@ int			pgp_rsa_encrypt(PGP_PubKey *pk, PGP_MPI *m, PGP_MPI **c);
+@@ -315,3 +375,4 @@ int			pgp_rsa_encrypt(PGP_PubKey *pk, PGP_MPI *m, PGP_MPI **c);
  int			pgp_rsa_decrypt(PGP_PubKey *pk, PGP_MPI *c, PGP_MPI **m);
  
  extern struct PullFilterOps pgp_decrypt_filter;
@@ -3882,10 +3976,10 @@ index 8e1d72a..d19911b 100644
 +select pgp_main_key_id(dearmor(seckey)) from keytbl where id=6;
 diff --git a/sql/pgp-sign.sql b/sql/pgp-sign.sql
 new file mode 100644
-index 0000000..0a49811
+index 0000000..9ea8ade
 --- /dev/null
 +++ b/sql/pgp-sign.sql
-@@ -0,0 +1,206 @@
+@@ -0,0 +1,211 @@
 +--
 +-- PGP sign
 +--
@@ -3908,7 +4002,7 @@ index 0000000..0a49811
 +select pgp_pub_signatures.* from
 +    (select pgp_pub_encrypt_sign_bytea('Secret.', dearmor(pubkey), dearmor(seckey)) as ciphertext
 +    from keytbl where keytbl.name = 'rsaenc2048') encrypted,
-+    lateral pgp_pub_signatures(encrypted.ciphertext, (select dearmor(seckey) from keytbl where keytbl.name='elg2048'), '', 'debug=1')
++    lateral pgp_pub_signatures(encrypted.ciphertext, (select dearmor(seckey) from keytbl where keytbl.name='elg2048'), '', false, 'debug=1')
 +    ;
 +
 +-- decrypt without verifying the signature
@@ -3992,8 +4086,13 @@ index 0000000..0a49811
 +
 +select * from pgp_pub_decrypt_bytea((select dearmor(data) from encdata where id=6), (select dearmor(seckey) from keytbl where keytbl.name = 'rsaenc2048'));
 +
++-- no details
 +select * from pgp_sym_signatures((select dearmor(data) from encdata where id=5), 'key');
 +select * from pgp_pub_signatures((select dearmor(data) from encdata where id=6), (select dearmor(seckey) from keytbl where keytbl.name = 'rsaenc2048'));
++
++-- with details; the signatures will appear in reverse order
++select * from pgp_sym_signatures((select dearmor(data) from encdata where id=5), 'key', true);
++select * from pgp_pub_signatures((select dearmor(data) from encdata where id=6), (select dearmor(seckey) from keytbl where keytbl.name = 'rsaenc2048'), '', true);
 +
 +-- verify both signatures
 +select * from pgp_pub_decrypt_verify_bytea((select dearmor(data) from encdata where id=6), (select dearmor(seckey) from keytbl where keytbl.name = 'rsaenc2048'), (select dearmor(pubkey) from keytbl where keytbl.name = 'rsa2048'));
