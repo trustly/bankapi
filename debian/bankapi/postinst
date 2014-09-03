@@ -3,11 +3,11 @@ set -e
 
 case "$1" in
 	reconfigure)
-		a2dissite "010-bankapi"
+		a2dissite "010-bankapi.conf"
 		;;&
 	configure|reconfigure)
-		if [ ! -e "/etc/apache2/sites-enabled/010-bankapi" ]; then
-			a2ensite -q "010-bankapi"
+		if [ ! -e "/etc/apache2/sites-enabled/010-bankapi.conf" ]; then
+			a2ensite -q "010-bankapi.conf"
 			a2enmod -q cgi
 			service apache2 restart
 		fi
