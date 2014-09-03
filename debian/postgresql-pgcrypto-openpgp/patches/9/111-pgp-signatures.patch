@@ -1709,7 +1709,7 @@ index b75266f..15d5a13 100644
 +}
 +
 diff --git a/pgp-pgsql.c b/pgp-pgsql.c
-index c251d3f..b0cbe63 100644
+index c251d3f..d04d1a3 100644
 --- a/pgp-pgsql.c
 +++ b/pgp-pgsql.c
 @@ -35,6 +35,10 @@
@@ -2241,7 +2241,7 @@ index c251d3f..b0cbe63 100644
 +	PG_FREE_IF_COPY(key, 1);
 +	PG_FREE_IF_COPY(sigkey, 2);
 +	if (PG_NARGS() > 3)
-+		PG_FREE_IF_COPY(arg, 3);
++		PG_FREE_IF_COPY(psw, 3);
 +	if (PG_NARGS() > 4)
 +		PG_FREE_IF_COPY(arg, 4);
 +	PG_RETURN_TEXT_P(res);
@@ -2271,7 +2271,7 @@ index c251d3f..b0cbe63 100644
 +	PG_FREE_IF_COPY(key, 1);
 +	PG_FREE_IF_COPY(sigkey, 2);
 +	if (PG_NARGS() > 3)
-+		PG_FREE_IF_COPY(arg, 3);
++		PG_FREE_IF_COPY(psw, 3);
 +	if (PG_NARGS() > 4)
 +		PG_FREE_IF_COPY(arg, 4);
 +	PG_RETURN_TEXT_P(res);
@@ -3734,7 +3734,7 @@ index b8a6bc4..46fcb7c 100644
  {
  	int			code = pgp_get_cipher_code(name);
 diff --git a/pgp.h b/pgp.h
-index b9574fa..d10fc18 100644
+index b9574fa..31723e8 100644
 --- a/pgp.h
 +++ b/pgp.h
 @@ -42,6 +42,7 @@ enum PGP_PKT_TYPE
@@ -3749,10 +3749,6 @@ index b9574fa..d10fc18 100644
  	PGP_DIGEST_SHA512 = 10
  };
  
--#define PGP_MAX_KEY    (256/8)
--#define PGP_MAX_BLOCK  (256/8)
--#define PGP_MAX_DIGEST (512/8)
--#define PGP_S2K_SALT   8
 +enum PGP_SIGNATURE_TYPE
 +{
 +	PGP_SIGTYP_BINARY = 0,
@@ -3765,11 +3761,11 @@ index b9574fa..d10fc18 100644
 +	PGP_ISSUER_ID = 16
 +};
 +
-+#define PGP_MAX_KEY					(256/8)
-+#define PGP_MAX_BLOCK				(256/8)
-+#define PGP_MAX_DIGEST				(512/8)
+ #define PGP_MAX_KEY    (256/8)
+ #define PGP_MAX_BLOCK  (256/8)
+ #define PGP_MAX_DIGEST (512/8)
 +#define PGP_MAX_DIGEST_ASN1_PREFIX	20
-+#define PGP_S2K_SALT				8
+ #define PGP_S2K_SALT   8
  
  typedef struct PGP_MPI PGP_MPI;
  typedef struct PGP_PubKey PGP_PubKey;
