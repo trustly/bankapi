@@ -1,0 +1,11 @@
+--- a/pgp-pgsql.c	2014-09-03 10:49:50.981624594 +0200
++++ b/pgp-pgsql.c	2014-09-03 10:50:16.977620859 +0200
+@@ -31,8 +31,6 @@
+ 
+ #include "postgres.h"
+ 
+-#include "fmgr.h"
+-#include "parser/scansup.h"
+ #include "mb/pg_wchar.h"
+ #include "utils/builtins.h"
+ 

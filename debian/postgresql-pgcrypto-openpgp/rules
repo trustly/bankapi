@@ -1,7 +1,9 @@
 #!/usr/bin/make -f
 
 VERSION=1.2-1
-PGVERSION=$$(pg_config --version | sed 's/.* //' | cut -f1-2 -d.)
+PGMINORVERSION=$$(pg_config --version | sed 's/.* //')
+PGVERSION=$$(echo "$(PGMINORVERSION)" | cut -f1-2 -d.)
+PGMAJORVERSION=$$(echo "$(PGVERSION)" | cut -f1 -d.)
 PACKAGE=postgresql-pgcrypto-openpgp-$(PGVERSION)
 ROOT=$(PWD)
 DEBIAN=$(ROOT)/debian/postgresql-pgcrypto-openpgp
@@ -21,15 +23,9 @@ build: clean
 	(cd "$(BUILDDIR)" ; \
 		set -e; \
 		cd */contrib/pgcrypto; \
-		if [ -d "$(DEBIAN)/patches/$(PGVERSION)" ]; then \
-			for file in $$(ls $(DEBIAN)/patches/$(PGVERSION)/*.patch | sort -n); do \
-				echo "PATCH $$file"; \
-				patch -t -p1 < "$$file"; \
-			done; \
-		fi; \
-		for file in $$(ls $(DEBIAN)/patches/*.patch | sort -n); do \
-			echo "PATCH $$file"; \
-			patch -t -p1 < "$$file"; \
+		for file in $$(find $(DEBIAN)/patches/$(PGMINORVERSION) $(DEBIAN)/patches/$(PGVERSION) $(DEBIAN)/patches/$(PGMAJORVERSION) -name \*.patch | cut -c$$(echo "$(DEBIAN)" | wc -c)- | sort -t/ -k 4n); do \
+			echo "PATCH $(DEBIAN)$$file"; \
+			patch -t -p1 < "$(DEBIAN)$$file"; \
 		done; \
 		echo "Done patching"; \
 		$(MAKE); \
