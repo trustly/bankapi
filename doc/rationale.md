@@ -14,8 +14,8 @@ Compare this with for instance the email protocol SMTP, which is by its design d
 The fees charged by SWIFT was the main reason why this project took off in the first place.
 We wanted a way to communicate with other banks in a more efficient way without any fees to do something as simple as sending a message from A to B.
 
-The decentralized design of BankAPI protocol ensures noone controls it, noone owns it, noone can shut it down, just like the Internet.
-The un-innovative design of BankAPI protocol ensures noone can critizise it, as there is nothing new invented, it's just a combination of existing well proven technologies.
+The decentralized design of BankAPI protocol ensures no one controls it, no one owns it, no one can shut it down, just like the Internet.
+The un-innovative design of BankAPI protocol ensures no one can critizise it, as there is nothing new invented, it's just a combination of existing well proven technologies.
 
 Imagine if all mail in the world would be sent to a single central SMTP mailserver in Belgium, and from there delivered to the addressee.
 That would be horrible from an efficiency perspective.
