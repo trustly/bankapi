@@ -32,7 +32,8 @@ The details specific to OpenPGP are documented in
 
 2. All parties **MUST** use a key length of at least 2048 bits for their RSA
    keys.  Implementations **SHOULD** accept key sizes of 2048, 3072 and 4096
-   bits.  DSA and Elgamal **MUST NOT** be used.
+   bits.  Using 4096-bit keys is **RECOMMENDED**.  DSA and Elgamal **MUST NOT**
+   be used.
 
 3. The cipher algorithm **MUST** be one of AES128, AES192 and AES256.
 
