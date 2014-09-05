@@ -9,6 +9,10 @@ CP=cp -p
 APACHEVERSION=$$(/usr/sbin/apache2 -v | head -n1 | cut -f2 -d/ | cut -f1-2 -d.)
 
 build: clean
+	if [ ! -f /usr/sbin/apache2 ]; then \
+		echo "You need to install apache2 in order to build bankapi"; \
+		exit 1; \
+	fi
 	mkdir -p "$(PACKAGEDIR)" \
 		"$(PACKAGEDIR)/usr/share/bankapi" \
 		"$(PACKAGEDIR)/etc/apache2/sites-available" \

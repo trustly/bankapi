@@ -191,7 +191,7 @@ the default version in Debian you can omit the version extension of the
 packages names.
 
 - sudo apt-get -y build-dep postgresql-9.3
-- sudo apt-get -y install postgresql-server-dev-9.3
+- sudo apt-get -y install postgresql-server-dev-9.3 postgresql-9.3 apache2 python-psycopg2
 - make
 
 This should produce two deb files, one for bankapi and one for the pgcrypto
