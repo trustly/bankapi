@@ -25,9 +25,7 @@ How could B be certain the message sent from A really comes from B? And what if 
 We all know the Internet is insecure, data sent can be "sniffed" by all the routers between A and B.
 We all know IP-addresses on the Internet can be "spoofed", so how can B really know the message came from A?
 
-At about the same time both Internet and SWIFT was invented more than 40 years ago, another important invention came about the same time, called RSA (public key cryptography).
-But RSA is just an algorithm to do encryption/decryption using public/secret keys.
-There was still not a widely accepted standard to solve the problem of communicating securely until the OpenPGP standard, defined by RFC 4880, released in 2007.
+Internet and Swift was invented more than 40 years ago about the same time as another invention called RSA (public key cryptography). But RSA is just an algorithm to do encryption/decryption using public/secret keys. There was still not a widely accepted standard to solve the problem of communicating securely until the OpenPGP standard, defined by RFC 4880, released in 2007.
 
 A good thing with OpenPGP is it doesn't say anything about what you can send in a message.
 A message can be a binary file, a text file a message or anything you like to send from A to B.
