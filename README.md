@@ -30,7 +30,7 @@ The details specific to OpenPGP are documented in
    **MUST** contain a signature packet.  Implementations **MAY** choose to
    generate one-pass signatures.
 
-2. All parties **MUST** use a key length of 2048 bits for their RSA keys.
+2. All parties **MUST** use a key length of at least 2048 bits for their RSA keys.
    Implementations **MAY** accept longer keys.  DSA and Elgamal **MUST NOT** be
    used.
 
