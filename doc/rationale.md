@@ -41,5 +41,5 @@ If they would exchange public keys in person by visiting each others bank headqu
 
 It turns out SWIFT is perfectly suited for the task of exchanging public keys.
 If bank A sends their public keys to bank B as a normal SWIFT text message, bank B will know it really comes from A.
-Bank B will also be able to later on provide proof to others bank A really did send them that particular public key, as SWIFT messages are archieved.
-That also means Bank B will be able to prove all messages sent over the Internet from bank A really comes from bank A.
+Bank B will also be able to later on provide proof to others that bank A really did send them that particular public key, as SWIFT messages are archieved.
+That also means Bank B will be able to prove all messages sent over the Internet from bank A really came from bank A.
