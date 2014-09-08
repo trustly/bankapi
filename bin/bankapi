@@ -450,7 +450,7 @@ if len(sys.argv) < 2:
 command = sys.argv.pop(1)
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'd:?hvi')
+    opts, args = getopt.getopt(sys.argv[1:], 'd:?hvik:')
     for o, a in opts:
         if o == '-d':
             pg_connect_str = "dbname=%s" % (a)
@@ -458,6 +458,8 @@ try:
             verbose = True
         elif o == '-i':
             verify_https = False
+        elif o == '-k':
+            pgp_keyserver = a
         elif o == '-h' or o == '-?':
             bail()
         else:
