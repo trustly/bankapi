@@ -6,7 +6,8 @@ import json
 import psycopg2
 import psycopg2.extras
 import re
-import httplib
+import requests
+import requests.exceptions
 import pprint
 import socket
 import getopt
@@ -17,6 +18,7 @@ pg_connect_str = "dbname=bankapi"
 pg_conn = None
 pgp_keyserver = "keys.gnupg.net"
 verbose = False
+verify_https = True
 
 def bail(error=None, help=False):
     global pgp_keyserver
@@ -25,7 +27,7 @@ def bail(error=None, help=False):
         print "Error: %s" % (error.rstrip())
 
     if error is None or help == True:
-        print "Usage: %s [-d dbname] <command> <args>" % (sys.argv[0])
+        print "Usage: %s [-d dbname] <command> <arguments>" % (sys.argv[0])
         print ""
         print "Commands:"
         print " send frombank tobank messagetype [ filename ... ]"
@@ -35,6 +37,8 @@ def bail(error=None, help=False):
         print ""
         print "Arguments:"
         print "    -v            Be more verbose about what is being done"
+        print "    -i            Allow HTTPS connections that fail certificate verification when"
+        print "                  delivering messages"
         print "    -d dbname     Name of database to use locally (default: bankapi)"
         print "    -k server     Use this keyserver instead of the default when adding a bank"
         print "                  (default: %s)" % (pgp_keyserver)
@@ -82,6 +86,7 @@ def process_commandline(command, argv):
 
 def send_file(from_bank, to_bank, messagetype, filename):
     global pg_conn
+    global verify_https
 
     fh = None
     if filename == '-':
@@ -118,12 +123,6 @@ def send_file(from_bank, to_bank, messagetype, filename):
         pg_conn.rollback()
         bail(error=e.pgerror)
 
-    client = None
-    if messagehub_proto == 'https':
-        client = httplib.HTTPSConnection(messagehub_host, messagehub_port)
-    else:
-        client = httplib.HTTPConnection(messagehub_host, messagehub_port)
-
     messagehub_str = url_str(messagehub_proto, messagehub_host, messagehub_port, messagehub_path)
 
     print "Sending message %s -> %s using %s ... " % (from_bank, to_bank, messagehub_str),
@@ -153,25 +152,34 @@ def send_file(from_bank, to_bank, messagetype, filename):
             "Content-Type": "text/plain"
             }
 
+    messagehub_url = None
+    if (messagehub_proto == 'https' and messagehub_port != 443) or (messagehub_proto == 'http' and messagehub_port != 80):
+        messagehub_url = "%s://%s:%s%s" % (messagehub_proto, messagehub_host, messagehub_port, messagehub_path)
+    else:
+        messagehub_url = "%s://%s%s" % (messagehub_proto, messagehub_host, messagehub_path)
+
     try:
-        client.request('POST', messagehub_path, request, headers)
-        response = client.getresponse()
-    except (socket.gaierror, socket.error) as e:
+        response = requests.post(messagehub_url, data=request, headers=headers, timeout=10, allow_redirects=False, verify=verify_https)
+    except (requests.exceptions.SSLError, requests.exceptions.ConnectionError) as e:
         bail(error="Could not connect to %s: %s" % (messagehub_str, str(e)))
 
-    print " %s %s" % (response.status, response.reason)
+    try:
+        print " %s %s" % (response.status_code, response.reason)
+    except AttributeError:
+            # Reason was not available in the early versions of requests
+        print " HTTP %s" % (response.status_code)
+
     debug('Ciphertext sent: %s' % (ciphertext))
 
-    if response.status == 200:
-        response_body = response.read()
-        debug('Peer responded with: %s' % (response_body))
+    if response.status_code == 200:
+        debug('Peer responded with: %s' % (response.content))
         try:
             print " Saving delivery recieipt"
 
             cur.execute("""SELECT FileID, FromBankID, ToBankID FROM Decode_Delivery_Receipt(
                 _DeliveryReceipt := %s
                 )""",
-                [response_body])
+                [response.content])
 
             sqldata = cur.fetchone()
             print " Message delivered to %s (from %s) %s" % (sqldata['tobankid'], sqldata['frombankid'], sqldata['fileid'])
@@ -180,7 +188,7 @@ def send_file(from_bank, to_bank, messagetype, filename):
             pg_conn.rollback()
             bail(error="Failed to save delivery receipt: error=%s, code=%s" % (e.pgerror, e.pgcode))
     else:
-        bail(error="Failure")
+        bail(error="Failed to deliver message")
 
 def list_messages():
     global pg_conn
@@ -442,16 +450,19 @@ if len(sys.argv) < 2:
 command = sys.argv.pop(1)
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'd:?hv')
+    opts, args = getopt.getopt(sys.argv[1:], 'd:?hvi')
     for o, a in opts:
         if o == '-d':
             pg_connect_str = "dbname=%s" % (a)
         elif o == '-v':
             verbose = True
+        elif o == '-i':
+            verify_https = False
         elif o == '-h' or o == '-?':
             bail()
         else:
             bail(error="Bad argument %s" % (o), help=True)
+
 except getopt.GetoptError as e:
     bail(error=str(e))
 try:

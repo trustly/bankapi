@@ -4,5 +4,5 @@ Maintainer: Per Lejontand <per.lejontand@trustly.com>
 Homepage: https://github.com/trustly/bankapi
 Package: bankapi
 Architecture: all
-Depends: postgresql-pgcrypto-openpgp, apache2 (>= 2.2), python2.7 (>= 2.7), python-psycopg2 (>= 2.4)
+Depends: postgresql-pgcrypto-openpgp, apache2 (>= 2.2), python2.7 (>= 2.7), python-psycopg2 (>= 2.4), python-requests (>= 0.12)
 Description: Web API and database setup scripts for the bankapi backend.
