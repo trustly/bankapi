@@ -15,6 +15,7 @@ _FromBankID text;
 _ToBankID text;
 _Message text;
 _FileID text;
+_CreationTime timestamptz;
 BEGIN
 
 _Cipherdata := dearmor(_Ciphertext);
@@ -25,8 +26,8 @@ END IF;
 
 _MessageID := encode(digest(_Cipherdata, 'sha512'),'hex');
 
-SELECT EncryptionKeyID,  SignatureKeyID,  Plaintext
-INTO  _EncryptionKeyID, _SignatureKeyID, _Plaintext
+SELECT EncryptionKeyID,  SignatureKeyID,  Plaintext,  CreationTime
+INTO  _EncryptionKeyID, _SignatureKeyID, _Plaintext, _CreationTime
 FROM Decrypt_Verify(_Cipherdata);
 
 SELECT BankID INTO STRICT _FromBankID FROM Keys WHERE MainKeyID = _SignatureKeyID;
@@ -40,8 +41,8 @@ END IF;
 
 SELECT Messages.DeliveryReceipt INTO _DeliveryReceipt FROM Messages WHERE MessageID = _MessageID;
 IF NOT FOUND THEN
-    INSERT INTO Messages ( MessageID,  MessageType,  FileID,  FromBankID,  ToBankID,  Cipherdata)
-    VALUES               (_MessageID, _MessageType, _FileID, _FromBankID, _ToBankID, _Cipherdata)
+    INSERT INTO Messages ( MessageID,  MessageType,  FileID,  FromBankID,  ToBankID,  Cipherdata,  Datestamp)
+    VALUES               (_MessageID, _MessageType, _FileID, _FromBankID, _ToBankID, _Cipherdata, _CreationTime)
     RETURNING TRUE INTO STRICT _OK;
 END IF;
 IF _DeliveryReceipt IS NULL THEN
