@@ -25,8 +25,8 @@ SELECT SubKeyID  INTO STRICT _EncryptionKeyID FROM Keys WHERE BankID = _ToBankID
 _Cipherdata := Encrypt_Sign(_Plaintext, _EncryptionKeyID, _SignatureKeyID);
 MessageID := encode(digest(_Cipherdata,'sha512'),'hex');
 
-INSERT INTO Messages (MessageID,  MessageType,  FileID,  FromBankID,  ToBankID,  Cipherdata)
-VALUES               (MessageID, _MessageType, _FileID, _FromBankID, _ToBankID, _Cipherdata)
+INSERT INTO Messages (MessageID,  MessageType,  FileID,  FromBankID,  ToBankID,  Cipherdata, MessageState)
+VALUES               (MessageID, _MessageType, _FileID, _FromBankID, _ToBankID, _Cipherdata, 'QUEUED')
 RETURNING TRUE INTO STRICT _OK;
 
 RETURN;

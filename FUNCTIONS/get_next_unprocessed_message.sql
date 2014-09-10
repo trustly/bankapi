@@ -27,7 +27,7 @@ INTO
     Plaintext
 FROM Messages
 INNER JOIN Files ON (Files.FileID = Messages.FileID)
-WHERE Messages.ProcessingState = 'UNPROCESSED'
+WHERE Messages.MessageState = 'UNPROCESSED'
 AND (Get_Next_Unprocessed_Message.MessageType IS NULL OR Messages.MessageType = Get_Next_Unprocessed_Message.MessageType)
 AND (Get_Next_Unprocessed_Message.FromBankID  IS NULL OR Messages.FromBankID  = Get_Next_Unprocessed_Message.FromBankID)
 AND (Get_Next_Unprocessed_Message.ToBankID    IS NULL OR Messages.ToBankID    = Get_Next_Unprocessed_Message.ToBankID)
@@ -37,9 +37,9 @@ FOR UPDATE OF Messages;
 IF NOT FOUND THEN
     RETURN;
 END IF;
-UPDATE Messages SET ProcessingState = 'PROCESSING'
+UPDATE Messages SET MessageState = 'PROCESSING'
 WHERE Messages.MessageID = Get_Next_Unprocessed_Message.MessageID
-AND Messages.ProcessingState = 'UNPROCESSED'
+AND Messages.MessageState = 'UNPROCESSED'
 RETURNING TRUE INTO STRICT _OK;
 RETURN;
 END;
