@@ -2,9 +2,9 @@ CREATE OR REPLACE FUNCTION Get_Next_Unprocessed_Message(
     OUT Datestamp timestamptz,
     OUT MessageID char(10),
     OUT Plaintext text,
-    INOUT MessageType text,
-    INOUT FromBankID text,
-    INOUT ToBankID text
+    INOUT MessageType text DEFAULT NULL,
+    INOUT FromBankID text DEFAULT NULL,
+    INOUT ToBankID text DEFAULT NULL
 ) RETURNS RECORD
 SET search_path TO public, pg_temp
 AS $BODY$
