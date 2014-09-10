@@ -1,4 +1,6 @@
-CREATE OR REPLACE FUNCTION Receive_Message(OUT DeliveryReceipt text, _Ciphertext text) RETURNS TEXT AS $BODY$
+CREATE OR REPLACE FUNCTION Receive_Message(OUT DeliveryReceipt text, _Ciphertext text) RETURNS TEXT
+SET search_path TO public, pg_temp
+AS $BODY$
 DECLARE
 _Cipherdata bytea;
 _MessageID text;
@@ -65,4 +67,4 @@ END IF;
 DeliveryReceipt := armor(_DeliveryReceipt);
 RETURN;
 END;
-$BODY$ LANGUAGE plpgsql VOLATILE;
+$BODY$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
