@@ -1,7 +1,7 @@
 CREATE OR REPLACE FUNCTION Decode_Delivery_Receipt(OUT FileID text, OUT FromBankID text, OUT ToBankID text, _DeliveryReceipt text) RETURNS RECORD
 SET search_path TO public, pg_temp
 AS $BODY$
-UPDATE Messages SET DeliveryReceipt = COALESCE(DeliveryReceipt,dearmor($1)), Delivered = COALESCE(Delivered,now())
+UPDATE Messages SET DeliveryReceipt = COALESCE(DeliveryReceipt,dearmor($1)), Delivered = COALESCE(Delivered,now()), MessageState = 'SENT'
 FROM Decrypt_Verify(dearmor($1)),
 Keys AS FromBankKey,
 Keys AS ToBankKey
