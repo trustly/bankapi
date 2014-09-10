@@ -18,3 +18,5 @@ CREATE EXTENSION pgcrypto_openpgp;
 \i FUNCTIONS/register_bank.sql
 \i FUNCTIONS/register_public_keyring.sql
 \i FUNCTIONS/register_secret_keyring.sql
+\i FUNCTIONS/get_next_unprocessed_message.sql
+\i FUNCTIONS/update_message_processing_state.sql
