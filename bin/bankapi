@@ -66,6 +66,9 @@ def process_commandline(command, argv):
         else:
             files = ['-']
 
+        if not version_check(requests.__version__, '0.8.8'):
+            print "WARNING: The current version of the Python requests library (%s) does not validate HTTPS certificates. Please consider upgrading to at least version 0.8.8" % (requests.__version__)
+
         for filename in files:
             send_file(frombank, tobank, messagetype, filename)
 
@@ -158,10 +161,16 @@ def send_file(from_bank, to_bank, messagetype, filename):
     else:
         messagehub_url = "%s://%s%s" % (messagehub_proto, messagehub_host, messagehub_path)
 
-    try:
-        response = requests.post(messagehub_url, data=request, headers=headers, timeout=10, allow_redirects=False, verify=verify_https)
-    except (requests.exceptions.SSLError, requests.exceptions.ConnectionError) as e:
-        bail(error="Could not connect to %s: %s" % (messagehub_str, str(e)))
+    if version_check(requests.__version__, '0.8.8'):
+        try:
+            response = requests.post(messagehub_url, data=request, headers=headers, timeout=10, allow_redirects=False, verify=verify_https)
+        except (requests.exceptions.SSLError, requests.exceptions.ConnectionError) as e:
+            bail(error="Could not connect to %s: %s" % (messagehub_str, str(e)))
+    else:
+        try:
+            response = requests.post(messagehub_url, data=request, headers=headers, timeout=10, allow_redirects=False)
+        except (requests.exceptions.ConnectionError) as e:
+            bail(error="Could not connect to %s: %s" % (messagehub_str, str(e)))
 
     try:
         print " %s %s" % (response.status_code, response.reason)
@@ -443,6 +452,21 @@ def unescape_gpg_comment(comment):
         ndx = comment.find('\\x')
 
     return n_comment + comment
+
+def version_check(version, minversion):
+    v = version.split('.')
+    mv = minversion.split('.')
+    for mvn in mv:
+        try:
+            vn = v.pop(0)
+            if vn < mvn:
+                return False
+            elif mvn < vn:
+                return True
+        except IndexError as e:
+            return False
+    return True
+
 
 if len(sys.argv) < 2:
     bail(error='No command given', help=True)
