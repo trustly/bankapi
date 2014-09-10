@@ -9,7 +9,9 @@ _ProcessingState processingstate DEFAULT NULL,
 _MessageType text DEFAULT NULL,
 _FromBankID text DEFAULT NULL,
 _ToBankID text DEFAULT NULL
-) RETURNS SETOF RECORD AS $BODY$
+) RETURNS SETOF RECORD
+SET search_path TO public, pg_temp
+AS $BODY$
 SELECT
     Datestamp::timestamptz(0),
     MessageID::char(10),
@@ -23,4 +25,4 @@ AND   ($2 IS NULL OR MessageType     = $2)
 AND   ($3 IS NULL OR FromBankID      = $3)
 AND   ($4 IS NULL OR ToBankID        = $4)
 ORDER BY Datestamp
-$BODY$ LANGUAGE sql VOLATILE;
+$BODY$ LANGUAGE sql VOLATILE SECURITY DEFINER;
