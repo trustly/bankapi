@@ -41,8 +41,8 @@ END IF;
 
 SELECT Messages.DeliveryReceipt INTO _DeliveryReceipt FROM Messages WHERE MessageID = _MessageID;
 IF NOT FOUND THEN
-    INSERT INTO Messages ( MessageID,  MessageType,  FileID,  FromBankID,  ToBankID,  Cipherdata,  Datestamp)
-    VALUES               (_MessageID, _MessageType, _FileID, _FromBankID, _ToBankID, _Cipherdata, _CreationTime)
+    INSERT INTO Messages ( MessageID,  MessageType,  FileID,  FromBankID,  ToBankID,  Cipherdata,  Datestamp,    MessageState)
+    VALUES               (_MessageID, _MessageType, _FileID, _FromBankID, _ToBankID, _Cipherdata, _CreationTime, 'UNPROCESSED')
     RETURNING TRUE INTO STRICT _OK;
 END IF;
 IF _DeliveryReceipt IS NULL THEN
