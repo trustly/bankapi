@@ -1,138 +1,129 @@
 diff --git a/expected/pgp-armor.out b/expected/pgp-armor.out
-index c955494..9d740c7 100644
+index c955494..d5d8a59 100644
 --- a/expected/pgp-armor.out
 +++ b/expected/pgp-armor.out
-@@ -102,3 +102,261 @@ em9va2E=
+@@ -102,3 +102,319 @@ em9va2E=
  -----END PGP MESSAGE-----
  ');
  ERROR:  Corrupt ascii-armor
-+-- corrupt
-+select pgp_armor_header('
++-- corrupt (no space after the colon)
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +foo:
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'foo');
++');
 +ERROR:  Corrupt ascii-armor
-+-- empty
-+select pgp_armor_header('
++-- corrupt (no empty line)
++select * from pgp_armor_headers('
++-----BEGIN PGP MESSAGE-----
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++');
++ERROR:  Corrupt ascii-armor
++-- no headers
++select * from pgp_armor_headers('
++-----BEGIN PGP MESSAGE-----
++
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++');
++ key | value 
++-----+-------
++(0 rows)
++
++-- header with empty value
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +foo: 
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'foo');
-+ pgp_armor_header 
-+------------------
-+ 
++');
++ key | value 
++-----+-------
++ foo | 
 +(1 row)
 +
 +-- simple
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
-+foo: bar
++fookey: foovalue
++barkey: barvalue
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'foo');
-+ pgp_armor_header 
-+------------------
-+ bar
-+(1 row)
-+
-+-- uninteresting keys, part 1
-+select pgp_armor_header('
-+-----BEGIN PGP MESSAGE-----
-+foo: found
-+bar: ignored
-+
-+em9va2E=
-+=ZZZZ
-+-----END PGP MESSAGE-----
-+', 'foo');
-+ pgp_armor_header 
-+------------------
-+ found
-+(1 row)
-+
-+-- uninteresting keys, part 2
-+select pgp_armor_header('
-+-----BEGIN PGP MESSAGE-----
-+bar: ignored
-+foo: found
-+
-+em9va2E=
-+=ZZZZ
-+-----END PGP MESSAGE-----
-+', 'foo');
-+ pgp_armor_header 
-+------------------
-+ found
-+(1 row)
-+
-+-- uninteresting keys, part 3
-+select pgp_armor_header('
-+-----BEGIN PGP MESSAGE-----
-+bar: ignored
-+foo: found
-+bar: ignored
-+
-+em9va2E=
-+=ZZZZ
-+-----END PGP MESSAGE-----
-+', 'foo');
-+ pgp_armor_header 
-+------------------
-+ found
-+(1 row)
++');
++  key   |  value   
++--------+----------
++ fookey | foovalue
++ barkey | barvalue
++(2 rows)
 +
 +-- insane keys, part 1
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +insane:key : 
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'insane:key ');
-+ pgp_armor_header 
-+------------------
-+ 
++');
++     key     | value 
++-------------+-------
++ insane:key  | 
 +(1 row)
 +
 +-- insane keys, part 2
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +insane:key : text value here
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'insane:key ');
-+ pgp_armor_header 
-+------------------
-+ text value here
++');
++     key     |      value      
++-------------+-----------------
++ insane:key  | text value here
 +(1 row)
 +
 +-- long value
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +long: this value is more than 76 characters long, but it should still parse correctly as that''s permitted by RFC 4880
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'long');
-+                                                pgp_armor_header                                                 
-+-----------------------------------------------------------------------------------------------------------------
-+ this value is more than 76 characters long, but it should still parse correctly as that's permitted by RFC 4880
++');
++ key  |                                                      value                                                      
++------+-----------------------------------------------------------------------------------------------------------------
++ long | this value is more than 76 characters long, but it should still parse correctly as that's permitted by RFC 4880
 +(1 row)
 +
 +-- long value, split up
++select * from pgp_armor_headers('
++-----BEGIN PGP MESSAGE-----
++long: this value is more than 76 characters long, but it should still 
++long: parse correctly as that''s permitted by RFC 4880
++
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++');
++ key  |                              value                               
++------+------------------------------------------------------------------
++ long | this value is more than 76 characters long, but it should still 
++ long | parse correctly as that's permitted by RFC 4880
++(2 rows)
++
 +select pgp_armor_header('
 +-----BEGIN PGP MESSAGE-----
 +long: this value is more than 76 characters long, but it should still 
@@ -148,7 +139,24 @@ index c955494..9d740c7 100644
 +(1 row)
 +
 +-- long value, split up, part 2
-+select pgp_armor_header('
++select * from pgp_armor_headers('
++-----BEGIN PGP MESSAGE-----
++long: this value is more than 
++long: 76 characters long, but it should still 
++long: parse correctly as that''s permitted by RFC 4880
++
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++');
++ key  |                      value                      
++------+-------------------------------------------------
++ long | this value is more than 
++ long | 76 characters long, but it should still 
++ long | parse correctly as that's permitted by RFC 4880
++(3 rows)
++
++select * from pgp_armor_header('
 +-----BEGIN PGP MESSAGE-----
 +long: this value is more than 
 +long: 76 characters long, but it should still 
@@ -164,15 +172,40 @@ index c955494..9d740c7 100644
 +(1 row)
 +
 +-- long value, split up, part 3
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
-+ignored: 
++emptykey: 
 +long: this value is more than 
-+ignored: 
++emptykey: 
 +long: 76 characters long, but it should still 
-+ignored: 
++emptykey: 
 +long: parse correctly as that''s permitted by RFC 4880
-+ignored: 
++emptykey: 
++
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++');
++   key    |                      value                      
++----------+-------------------------------------------------
++ emptykey | 
++ long     | this value is more than 
++ emptykey | 
++ long     | 76 characters long, but it should still 
++ emptykey | 
++ long     | parse correctly as that's permitted by RFC 4880
++ emptykey | 
++(7 rows)
++
++select * from pgp_armor_header('
++-----BEGIN PGP MESSAGE-----
++emptykey: 
++long: this value is more than 
++emptykey: 
++long: 76 characters long, but it should still 
++emptykey: 
++long: parse correctly as that''s permitted by RFC 4880
++emptykey: 
 +
 +em9va2E=
 +=ZZZZ
@@ -183,7 +216,7 @@ index c955494..9d740c7 100644
 + this value is more than 76 characters long, but it should still parse correctly as that's permitted by RFC 4880
 +(1 row)
 +
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +Comment: dat1.blowfish.sha1.mdc.s2k3.z0
 +
@@ -191,11 +224,27 @@ index c955494..9d740c7 100644
 +yA6Ce1QTMK3KdL2MPfamsTUSAML8huCJMwYQFfE=
 +=JcP+
 +-----END PGP MESSAGE-----
-+', 'Comment');
-+        pgp_armor_header        
-+--------------------------------
-+ dat1.blowfish.sha1.mdc.s2k3.z0
++');
++   key   |             value              
++---------+--------------------------------
++ Comment | dat1.blowfish.sha1.mdc.s2k3.z0
 +(1 row)
++
++-- test CR+LF line endings
++select * from pgp_armor_headers(replace('
++-----BEGIN PGP MESSAGE-----
++fookey: foovalue
++barkey: barvalue
++
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++', E'\n', E'\r\n'));
++  key   |  value   
++--------+----------
++ fookey | foovalue
++ barkey | barvalue
++(2 rows)
 +
 +-- test header generation
 +select armor('zooka', array['foo'], array['bar']);
@@ -210,24 +259,27 @@ index c955494..9d740c7 100644
 + 
 +(1 row)
 +
-+select armor('zooka', array['Version', 'Comment'], array['Created by pgcrypto', 'PostgreSQL, the world''s most most advanced open source database']);
-+                                  armor                                   
-+--------------------------------------------------------------------------
-+ -----BEGIN PGP MESSAGE-----                                             +
-+ Version: Created by pgcrypto                                            +
-+ Comment: PostgreSQL, the world's most most advanced open source database+
-+                                                                         +
-+ em9va2E=                                                                +
-+ =D5cR                                                                   +
-+ -----END PGP MESSAGE-----                                               +
++select armor('zooka', array['Version', 'Comment'], array['Created by pgcrypto', 'PostgreSQL, the world''s most advanced open source database']);
++                                armor                                
++---------------------------------------------------------------------
++ -----BEGIN PGP MESSAGE-----                                        +
++ Version: Created by pgcrypto                                       +
++ Comment: PostgreSQL, the world's most advanced open source database+
++                                                                    +
++ em9va2E=                                                           +
++ =D5cR                                                              +
++ -----END PGP MESSAGE-----                                          +
 + 
 +(1 row)
 +
-+select pgp_armor_header(armor('zooka', array['Version', 'Comment'], array['Created by pgcrypto', 'PostgreSQL, the world''s most most advanced open source database']), 'Comment');
-+                        pgp_armor_header                         
-+-----------------------------------------------------------------
-+ PostgreSQL, the world's most most advanced open source database
-+(1 row)
++select * from pgp_armor_headers(
++  armor('zooka', array['Version', 'Comment'],
++                 array['Created by pgcrypto', 'PostgreSQL, the world''s most advanced open source database']));
++   key   |                           value                            
++---------+------------------------------------------------------------
++ Version | Created by pgcrypto
++ Comment | PostgreSQL, the world's most advanced open source database
++(2 rows)
 +
 +-- error/corner cases
 +select armor('', array['foo'], array['too', 'many']);
@@ -264,11 +316,17 @@ index c955494..9d740c7 100644
 + 
 +(1 row)
 +
++select armor('', array[E'embedded\nnewline'], array['foo']);
++ERROR:  header key must not contain newlines
++select armor('', array['foo'], array[E'embedded\nnewline']);
++ERROR:  header value must not contain newlines
++select armor('', array['embedded: colon+space'], array['foo']);
++ERROR:  header key must not contain ": "
 diff --git a/pgcrypto_openpgp--1.2.sql b/pgcrypto_openpgp--1.2.sql
-index 8d794d3..4debd7e 100644
+index 8d794d3..8b5e918 100644
 --- a/pgcrypto_openpgp--1.2.sql
 +++ b/pgcrypto_openpgp--1.2.sql
-@@ -200,3 +200,18 @@ CREATE FUNCTION dearmor(text)
+@@ -200,3 +200,25 @@ CREATE FUNCTION dearmor(text)
  RETURNS bytea
  AS 'MODULE_PATHNAME', 'pg_dearmor'
  LANGUAGE C IMMUTABLE STRICT;
@@ -282,16 +340,31 @@ index 8d794d3..4debd7e 100644
 +AS 'MODULE_PATHNAME', 'pg_armor'
 +LANGUAGE C IMMUTABLE STRICT;
 +
-+CREATE FUNCTION pgp_armor_header(text, text)
-+RETURNS text
-+AS 'MODULE_PATHNAME', 'pgp_armor_header_w'
++CREATE FUNCTION pgp_armor_headers(text, key OUT text, value OUT text)
++RETURNS SETOF record
++AS 'MODULE_PATHNAME', 'pgp_armor_headers'
 +LANGUAGE C IMMUTABLE STRICT;
 +
++CREATE FUNCTION pgp_armor_header(text, text)
++RETURNS text
++AS $$
++SELECT string_agg(h.value, '') FROM pgp_armor_headers($1) h WHERE h.key = $2
++$$
++LANGUAGE sql IMMUTABLE STRICT;
++
 diff --git a/pgp-armor.c b/pgp-armor.c
-index 87adf91..86a0810 100644
+index 87adf91..3a7f51d 100644
 --- a/pgp-armor.c
 +++ b/pgp-armor.c
-@@ -179,7 +179,7 @@ b64_dec_len(unsigned srclen)
+@@ -32,7 +32,6 @@
+ #include "postgres.h"
+ 
+ #include "px.h"
+-#include "mbuf.h"
+ #include "pgp.h"
+ 
+ /*
+@@ -179,7 +178,7 @@ b64_dec_len(unsigned srclen)
   * PGP armor
   */
  
@@ -300,193 +373,291 @@ index 87adf91..86a0810 100644
  static const char *armor_footer = "\n-----END PGP MESSAGE-----\n";
  
  /* CRC24 implementation from rfc2440 */
-@@ -205,7 +205,8 @@ crc24(const uint8 *data, unsigned len)
+@@ -204,38 +203,40 @@ crc24(const uint8 *data, unsigned len)
+ 	return crc & 0xffffffL;
  }
  
- int
+-int
 -pgp_armor_encode(const uint8 *src, unsigned len, uint8 *dst)
-+pgp_armor_encode(const uint8 *src, unsigned len, uint8 *dst,
++void
++pgp_armor_encode(const uint8 *src, unsigned len, StringInfo dst,
 +				 int num_headers, char **keys, char **values)
  {
  	int			n;
- 	uint8	   *pos = dst;
-@@ -215,6 +216,22 @@ pgp_armor_encode(const uint8 *src, unsigned len, uint8 *dst)
- 	memcpy(pos, armor_header, n);
- 	pos += n;
+-	uint8	   *pos = dst;
++	int			res;
++	unsigned	b64len;
+ 	unsigned	crc = crc24(src, len);
  
+-	n = strlen(armor_header);
+-	memcpy(pos, armor_header, n);
+-	pos += n;
++	appendStringInfoString(dst, armor_header);
++
 +	for (n = 0; n < num_headers; n++)
-+	{
-+		size_t keylen = strlen(keys[n]);
-+		size_t valuelen = strlen(values[n]);
-+
-+		memcpy(pos, keys[n], keylen);
-+		pos += keylen;
-+		*pos++ = ':';
-+		*pos++ = ' ';
-+		memcpy(pos, values[n], valuelen);
-+		pos += valuelen;
-+		*pos++ = '\n';
-+	}
-+
-+	*pos++ = '\n';
-+
- 	n = b64_encode(src, len, pos);
- 	pos += n;
++		appendStringInfo(dst, "%s: %s\n", keys[n], values[n]);
++	appendStringInfoChar(dst, '\n');
  
-@@ -370,10 +387,116 @@ out:
+-	n = b64_encode(src, len, pos);
+-	pos += n;
++	/* make sure we have enough room to b64_encode() */
++	b64len = b64_enc_len(len);
++	enlargeStringInfo(dst, (int) b64len);
+ 
+-	if (*(pos - 1) != '\n')
+-		*pos++ = '\n';
++	res = b64_encode(src, len, (uint8 *) dst->data + dst->len);
++	if (res > b64len)
++		elog(FATAL, "overflow - encode estimate too small");
++	dst->len += res;
+ 
+-	*pos++ = '=';
+-	pos[3] = _base64[crc & 0x3f];
+-	crc >>= 6;
+-	pos[2] = _base64[crc & 0x3f];
+-	crc >>= 6;
+-	pos[1] = _base64[crc & 0x3f];
+-	crc >>= 6;
+-	pos[0] = _base64[crc & 0x3f];
+-	pos += 4;
++	if (*(dst->data + dst->len - 1) != '\n')
++		appendStringInfoChar(dst, '\n');
+ 
+-	n = strlen(armor_footer);
+-	memcpy(pos, armor_footer, n);
+-	pos += n;
++	appendStringInfoChar(dst, '=');
++	appendStringInfoChar(dst, _base64[(crc >> 18) & 0x3f]);
++	appendStringInfoChar(dst, _base64[(crc >> 12) & 0x3f]);
++	appendStringInfoChar(dst, _base64[(crc >> 6) & 0x3f]);
++	appendStringInfoChar(dst, _base64[crc & 0x3f]);
+ 
+-	return pos - dst;
++	appendStringInfoString(dst, armor_footer);
+ }
+ 
+ static const uint8 *
+@@ -310,7 +311,7 @@ find_header(const uint8 *data, const uint8 *datend,
+ }
+ 
+ int
+-pgp_armor_decode(const uint8 *src, unsigned len, uint8 *dst)
++pgp_armor_decode(const uint8 *src, int len, StringInfo dst)
+ {
+ 	const uint8 *p = src;
+ 	const uint8 *data_end = src + len;
+@@ -320,6 +321,7 @@ pgp_armor_decode(const uint8 *src, unsigned len, uint8 *dst)
+ 	const uint8 *base64_end = NULL;
+ 	uint8		buf[4];
+ 	int			hlen;
++	int			blen;
+ 	int			res = PXE_PGP_CORRUPT_ARMOR;
+ 
+ 	/* armor start */
+@@ -361,23 +363,126 @@ pgp_armor_decode(const uint8 *src, unsigned len, uint8 *dst)
+ 	crc = (((long) buf[0]) << 16) + (((long) buf[1]) << 8) + (long) buf[2];
+ 
+ 	/* decode data */
+-	res = b64_decode(base64_start, base64_end - base64_start, dst);
+-
+-	/* check crc */
+-	if (res >= 0 && crc24(dst, res) != crc)
+-		res = PXE_PGP_CORRUPT_ARMOR;
++	blen = (int) b64_dec_len(len);
++	enlargeStringInfo(dst, blen);
++	res = b64_decode(base64_start, base64_end - base64_start, (uint8 *) dst->data);
++	if (res > blen)
++		elog(FATAL, "overflow - decode estimate too small");
++	if (res >= 0)
++	{
++		if (crc24((uint8 *) dst->data, res) == crc)
++			dst->len += res;
++		else
++			res = PXE_PGP_CORRUPT_ARMOR;
++	}
+ out:
  	return res;
  }
  
-+int
-+pgp_armor_header(const uint8 *src, unsigned len, const char *key,
-+				 unsigned key_len, uint8 **dst, int *out_len)
-+{
-+	const uint8 *p = src;
-+	const uint8 *data_end = src + len;
-+	const uint8 *armor_end;
-+	const uint8 *eol,
-+				*colon;
-+	MBuf	   *buf = NULL;
-+	int			hlen;
-+	int			res = PXE_PGP_CORRUPT_ARMOR;
-+
-+	/* armor start */
-+	hlen = find_header(src, data_end, &p, 0);
-+	if (hlen <= 0)
-+		goto out;
-+	p += hlen;
-+
-+	/* armor end */
-+	hlen = find_header(p, data_end, &armor_end, 1);
-+	if (hlen <= 0)
-+		goto out;
-+
-+	/* read comments until an empty line or the end of data */
-+	while (p < armor_end)
-+	{
-+		res = PXE_PGP_CORRUPT_ARMOR;
-+
-+		if (*p == '\n' || *p == '\r')
-+		{
-+			res = 0;
-+			break;
-+		}
-+
-+		eol = memchr(p, '\n', armor_end - p);
-+		if (!eol)
-+			goto out;
-+
-+		/* find the next key */
-+		colon = p;
-+		while (1)
-+		{
-+			colon = memchr(colon, ':', eol - colon);
-+			if (!colon)
-+				goto out;
-+			if (colon == eol)
-+				goto out;
-+
-+			/* if it's not followed by a space, this isn't the full key */
-+			if (*(colon + 1) == ' ')
-+				break;
-+			colon = colon + 1;
-+		}
-+
-+		if (key_len == colon - p &&
-+			memcmp(p, key, key_len) == 0)
-+		{
-+			size_t valuelen;
-+			valuelen = eol - colon - 2;
-+			if (!buf)
-+				buf = mbuf_create(valuelen + 1);
-+
-+			res = mbuf_append(buf, colon + 2, (int) valuelen);
-+			if (res < 0)
-+				goto out;
-+		}
-+		/* step to start of next line */
-+		p = eol + 1;
-+	}
-+
-+out:
-+	if (res < 0)
-+	{
-+		if (buf)
-+			px_free(buf);
-+		*dst = NULL;
-+		*out_len = -1;
-+		return res;
-+	}
-+	else
-+	{
-+		if (buf)
-+		{
-+			/* 0-terminate the string for the caller */
-+			res = mbuf_append(buf, (uint8 *) "\x00", 1);
-+			if (res < 0)
-+				return res;
-+			*out_len = mbuf_steal_data(buf, dst) - 1;
-+		}
-+		else
-+		{
-+			*dst = NULL;
-+			*out_len = 0;
-+		}
-+		return 0;
-+	}
-+}
-+
- unsigned
+-unsigned
 -pgp_armor_enc_len(unsigned len)
-+pgp_armor_enc_len(unsigned len, int num_headers, char **keys, char **values)
++/*
++ * Extracts all armor headers from an ASCII-armored input.
++ *
++ * Returns 0 on success, or PXE_* error code on error. On success, the
++ * number of headers and their keys and values are returned in *nheaders,
++ * *nkeys and *nvalues.
++ */
++int
++pgp_extract_armor_headers(const uint8 *src, unsigned len,
++						  int *nheaders, char ***keys, char ***values)
  {
 -	return b64_enc_len(len) + strlen(armor_header) + strlen(armor_footer) + 16;
-+	int i;
-+	unsigned header_length = 0;
-+
-+	for (i = 0; i < num_headers; i++)
-+		header_length += strlen(keys[i]) + strlen(values[i]) + 2 + 1;
-+
-+	return strlen(armor_header) + header_length + 1 +
-+		   b64_enc_len(len) + strlen(armor_footer) + 16;
- }
+-}
++	const uint8 *data_end = src + len;
++	const uint8 *p;
++	const uint8 *base64_start;
++	const uint8 *armor_start;
++	const uint8 *armor_end;
++	Size		armor_len;
++	char	   *line;
++	char	   *nextline;
++	char	   *eol,
++				*colon;
++	int			hlen;
++	char	   *buf;
++	int			hdrlines;
++	int			n;
  
- unsigned
+-unsigned
+-pgp_armor_dec_len(unsigned len)
+-{
+-	return b64_dec_len(len);
++	/* armor start */
++	hlen = find_header(src, data_end, &armor_start, 0);
++	if (hlen <= 0)
++		return PXE_PGP_CORRUPT_ARMOR;
++	armor_start += hlen;
++
++	/* armor end */
++	hlen = find_header(armor_start, data_end, &armor_end, 1);
++	if (hlen <= 0)
++		return PXE_PGP_CORRUPT_ARMOR;
++
++	/* Count the number of armor header lines. */
++	hdrlines = 0;
++	p = armor_start;
++	while (p < armor_end && *p != '\n' && *p != '\r')
++	{
++		p = memchr(p, '\n', armor_end - p);
++		if (!p)
++			return PXE_PGP_CORRUPT_ARMOR;
++
++		/* step to start of next line */
++		p++;
++		hdrlines++;
++	}
++	base64_start = p;
++
++	/*
++	 * Make a modifiable copy of the part of the input that contains the
++	 * headers. The returned key/value pointers will point inside the buffer.
++	 */
++	armor_len = base64_start - armor_start;
++	buf = palloc(armor_len + 1);
++	memcpy(buf, armor_start, armor_len);
++	buf[armor_len] = '\0';
++
++	/* Allocate return arrays */
++	*keys = (char **) palloc(hdrlines * sizeof(char *));
++	*values = (char **) palloc(hdrlines * sizeof(char *));
++
++	/*
++	 * Split the header lines at newlines and ": " separators, and collect
++	 * pointers to the keys and values in the return arrays.
++	 */
++	n = 0;
++	line = buf;
++	for (;;)
++	{
++		/* find end of line */
++		eol = strchr(line, '\n');
++		if (!eol)
++			break;
++		nextline = eol + 1;
++		/* if the line ends in CR + LF, strip the CR */
++		if (eol > line && *(eol - 1) == '\r')
++			eol--;
++		*eol = '\0';
++
++		/* find colon+space separating the key and value */
++		colon = strstr(line, ": ");
++		if (!colon)
++			return PXE_PGP_CORRUPT_ARMOR;
++		*colon = '\0';
++
++		/* shouldn't happen, we counted the number of lines beforehand */
++		if (n >= hdrlines)
++			elog(ERROR, "unexpected number of armor header lines");
++
++		(*keys)[n] = line;
++		(*values)[n] = colon + 2;
++		n++;
++
++		/* step to start of next line */
++		line = nextline;
++	}
++
++	if (n != hdrlines)
++		elog(ERROR, "unexpected number of armor header lines");
++
++	*nheaders = n;
++	return 0;
+ }
 diff --git a/pgp-pgsql.c b/pgp-pgsql.c
-index d4eec03..fe4d20b 100644
+index d4eec03..9cab09a 100644
 --- a/pgp-pgsql.c
 +++ b/pgp-pgsql.c
-@@ -31,8 +31,10 @@
+@@ -31,8 +31,15 @@
  
  #include "postgres.h"
  
++#include "lib/stringinfo.h"
 +#include "catalog/pg_type.h"
  #include "mb/pg_wchar.h"
  #include "utils/builtins.h"
 +#include "utils/array.h"
++#include "funcapi.h"
++#include "utils/memutils.h"
++#include "utils/timestamp.h"
++#include "miscadmin.h"
  
  #include "mbuf.h"
  #include "px.h"
-@@ -55,6 +57,7 @@ Datum		pgp_key_id_w(PG_FUNCTION_ARGS);
+@@ -55,6 +62,7 @@ Datum		pgp_key_id_w(PG_FUNCTION_ARGS);
  
  Datum		pg_armor(PG_FUNCTION_ARGS);
  Datum		pg_dearmor(PG_FUNCTION_ARGS);
-+Datum		pgp_armor_header_w(PG_FUNCTION_ARGS);
++Datum		pgp_armor_headers(PG_FUNCTION_ARGS);
  
  /* function headers */
  
-@@ -72,6 +75,7 @@ PG_FUNCTION_INFO_V1(pgp_key_id_w);
+@@ -72,6 +80,7 @@ PG_FUNCTION_INFO_V1(pgp_key_id_w);
  
  PG_FUNCTION_INFO_V1(pg_armor);
  PG_FUNCTION_INFO_V1(pg_dearmor);
-+PG_FUNCTION_INFO_V1(pgp_armor_header_w);
++PG_FUNCTION_INFO_V1(pgp_armor_headers);
  
  /*
   * Mix a block of data into RNG.
-@@ -832,6 +836,68 @@ pgp_pub_decrypt_text(PG_FUNCTION_ARGS)
+@@ -164,6 +173,19 @@ convert_to_utf8(text *src)
+ 	return convert_charset(src, GetDatabaseEncoding(), PG_UTF8);
+ }
+ 
++static bool
++string_is_ascii(const char *str)
++{
++	const char *p;
++
++	for (p = str; *p; p++)
++	{
++		if (IS_HIGHBIT_SET(*p))
++			return false;
++	}
++	return true;
++}
++
+ static void
+ clear_and_pfree(text *p)
+ {
+@@ -832,28 +854,133 @@ pgp_pub_decrypt_text(PG_FUNCTION_ARGS)
   * Wrappers for PGP ascii armor
   */
  
++/*
++ * Helper function for pgp_armor. Converts arrays of keys and values into
++ * plain C arrays, and checks that they don't contain invalid characters.
++ */
 +static int
 +parse_key_value_arrays(ArrayType *key_array, ArrayType *val_array,
 +					   char ***p_keys, char ***p_values)
@@ -510,18 +681,18 @@ index d4eec03..fe4d20b 100644
 +	if (nkdims == 0)
 +		return 0;
 +
-+    deconstruct_array(key_array,
-+                      TEXTOID, -1, false, 'i',
-+                      &key_datums, &key_nulls, &key_count);
++	deconstruct_array(key_array,
++					  TEXTOID, -1, false, 'i',
++					  &key_datums, &key_nulls, &key_count);
 +
-+    deconstruct_array(val_array,
-+                      TEXTOID, -1, false, 'i',
-+                      &val_datums, &val_nulls, &val_count);
++	deconstruct_array(val_array,
++					  TEXTOID, -1, false, 'i',
++					  &val_datums, &val_nulls, &val_count);
 +
-+    if (key_count != val_count)
-+        ereport(ERROR,
-+                (errcode(ERRCODE_ARRAY_SUBSCRIPT_ERROR),
-+                 errmsg("mismatched array dimensions")));
++	if (key_count != val_count)
++		ereport(ERROR,
++				(errcode(ERRCODE_ARRAY_SUBSCRIPT_ERROR),
++				 errmsg("mismatched array dimensions")));
 +
 +	keys = (char **) palloc(sizeof(char *) * key_count);
 +	values = (char **) palloc(sizeof(char *) * val_count);
@@ -530,18 +701,46 @@ index d4eec03..fe4d20b 100644
 +	{
 +		char *v;
 +
++		/* Check that the key doesn't contain anything funny */
 +		if (key_nulls[i])
 +			ereport(ERROR,
 +					(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 +					 errmsg("null value not allowed for header key")));
++
++		v = TextDatumGetCString(key_datums[i]);
++
++		if (!string_is_ascii(v))
++			ereport(ERROR,
++					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
++					 errmsg("header key must not contain non-ASCII characters")));
++		if (strstr(v, ": "))
++			ereport(ERROR,
++					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
++					 errmsg("header key must not contain \": \"")));
++		if (strchr(v, '\n'))
++			ereport(ERROR,
++					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
++					 errmsg("header key must not contain newlines")));
++		keys[i] = v;
++
++		/* And the same for the value */
 +		if (val_nulls[i])
 +			ereport(ERROR,
 +					(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 +					 errmsg("null value not allowed for header value")));
-+		v = TextDatumGetCString(key_datums[i]);
-+		keys[i] = pg_server_to_any(v, strlen(v), PG_UTF8);
++
 +		v = TextDatumGetCString(val_datums[i]);
-+		values[i] = pg_server_to_any(v, strlen(v), PG_UTF8);
++
++		if (!string_is_ascii(v))
++			ereport(ERROR,
++					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
++					 errmsg("header value must not contain non-ASCII characters")));
++		if (strchr(v, '\n'))
++			ereport(ERROR,
++					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
++					 errmsg("header value must not contain newlines")));
++
++		values[i] = v;
 +	}
 +
 +	*p_keys = keys;
@@ -552,11 +751,14 @@ index d4eec03..fe4d20b 100644
  Datum
  pg_armor(PG_FUNCTION_ARGS)
  {
-@@ -840,15 +906,27 @@ pg_armor(PG_FUNCTION_ARGS)
- 	int			data_len,
- 				res_len,
- 				guess_len;
-+	int			num_headers = 0;
+ 	bytea	   *data;
+ 	text	   *res;
+-	int			data_len,
+-				res_len,
+-				guess_len;
++	int			data_len;
++	StringInfoData buf;
++	int			num_headers;
 +	char	  **keys = NULL,
 +			  **values = NULL;
  
@@ -568,63 +770,144 @@ index d4eec03..fe4d20b 100644
 +											 PG_GETARG_ARRAYTYPE_P(2),
 +											 &keys, &values);
 +	}
-+	else if (PG_NARGS() != 1)
++	else if (PG_NARGS() == 1)
++		num_headers = 0;
++	else
 +		elog(ERROR, "unexpected number of arguments %d", PG_NARGS());
  
 -	guess_len = pgp_armor_enc_len(data_len);
-+	guess_len = pgp_armor_enc_len(data_len, num_headers, keys, values);
- 	res = palloc(VARHDRSZ + guess_len);
+-	res = palloc(VARHDRSZ + guess_len);
++	initStringInfo(&buf);
  
- 	res_len = pgp_armor_encode((uint8 *) VARDATA(data), data_len,
+-	res_len = pgp_armor_encode((uint8 *) VARDATA(data), data_len,
 -							   (uint8 *) VARDATA(res));
-+							   (uint8 *) VARDATA(res),
-+							   num_headers, keys, values);
- 	if (res_len > guess_len)
+-	if (res_len > guess_len)
+-		ereport(ERROR,
+-				(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
+-				 errmsg("Overflow - encode estimate too small")));
+-	SET_VARSIZE(res, VARHDRSZ + res_len);
++	pgp_armor_encode((uint8 *) VARDATA(data), data_len, &buf,
++					 num_headers, keys, values);
++
++	res = palloc(VARHDRSZ + buf.len);
++	SET_VARSIZE(res, VARHDRSZ + buf.len);
++	memcpy(VARDATA(res), buf.data, buf.len);
++	pfree(buf.data);
+ 
+ 	PG_FREE_IF_COPY(data, 0);
+ 	PG_RETURN_TEXT_P(res);
+@@ -864,32 +991,105 @@ pg_dearmor(PG_FUNCTION_ARGS)
+ {
+ 	text	   *data;
+ 	bytea	   *res;
+-	int			data_len,
+-				res_len,
+-				guess_len;
++	int			data_len;
++	int			ret;
++	StringInfoData buf;
+ 
+ 	data = PG_GETARG_TEXT_P(0);
+ 	data_len = VARSIZE(data) - VARHDRSZ;
+ 
+-	guess_len = pgp_armor_dec_len(data_len);
+-	res = palloc(VARHDRSZ + guess_len);
++	initStringInfo(&buf);
+ 
+-	res_len = pgp_armor_decode((uint8 *) VARDATA(data), data_len,
+-							   (uint8 *) VARDATA(res));
+-	if (res_len < 0)
++	ret = pgp_armor_decode((uint8 *) VARDATA(data), data_len, &buf);
++	if (ret < 0)
  		ereport(ERROR,
  				(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
-@@ -890,6 +968,50 @@ pg_dearmor(PG_FUNCTION_ARGS)
+-				 errmsg("%s", px_strerror(res_len))));
+-	if (res_len > guess_len)
+-		ereport(ERROR,
+-				(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
+-				 errmsg("Overflow - decode estimate too small")));
+-	SET_VARSIZE(res, VARHDRSZ + res_len);
++				 errmsg("%s", px_strerror(ret))));
++	res = palloc(VARHDRSZ + buf.len);
++	SET_VARSIZE(res, VARHDRSZ + buf.len);
++	memcpy(VARDATA(res), buf.data, buf.len);
++	pfree(buf.data);
+ 
+ 	PG_FREE_IF_COPY(data, 0);
  	PG_RETURN_TEXT_P(res);
  }
  
-+Datum
-+pgp_armor_header_w(PG_FUNCTION_ARGS)
++/* cross-call state for pgp_armor_headers */
++typedef struct
 +{
-+	bytea	   *data;
-+	int			data_len,
-+				res;
-+	char	   *buf;
-+	text	   *key,
-+			   *utf8key;
-+	int			buflen;
++	int			nheaders;
++	char	  **keys;
++	char	  **values;
++} pgp_armor_headers_state;
 +
-+	data = PG_GETARG_BYTEA_P(0);
-+	data_len = VARSIZE(data) - VARHDRSZ;
++Datum
++pgp_armor_headers(PG_FUNCTION_ARGS)
++{
++	FuncCallContext *funcctx;
++	pgp_armor_headers_state *state;
++	char	   *utf8key;
++	char	   *utf8val;
++	HeapTuple	tuple;
++	TupleDesc	tupdesc;
++	AttInMetadata *attinmeta;
 +
-+	key = PG_GETARG_TEXT_P(1);
-+	utf8key = convert_to_utf8(key);
-+	res = pgp_armor_header((uint8 *) VARDATA(data), data_len,
-+							VARDATA(utf8key), VARSIZE(utf8key) - VARHDRSZ,
-+							(uint8 **) &buf, &buflen);
-+	if (res < 0)
-+		ereport(ERROR,
-+				(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
-+				 errmsg("%s", px_strerror(res))));
++	if (SRF_IS_FIRSTCALL())
++	{
++		text	   *data = PG_GETARG_TEXT_PP(0);
++		int			res;
++		MemoryContext oldcontext;
 +
-+	PG_FREE_IF_COPY(data, 0);
-+	if (utf8key != key)
-+		pfree(utf8key);
-+	PG_FREE_IF_COPY(key, 1);
-+	if (!buf)
-+		PG_RETURN_NULL();
++		funcctx = SRF_FIRSTCALL_INIT();
++
++		/* we need the state allocated in the multi call context */
++		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
++
++		/* Build a tuple descriptor for our result type */
++		if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
++			elog(ERROR, "return type must be a row type");
++
++		attinmeta = TupleDescGetAttInMetadata(tupdesc);
++		funcctx->attinmeta = attinmeta;
++
++		state = (pgp_armor_headers_state *) palloc(sizeof(pgp_armor_headers_state));
++
++		res = pgp_extract_armor_headers((uint8 *) VARDATA_ANY(data),
++										VARSIZE_ANY_EXHDR(data),
++										&state->nheaders, &state->keys,
++										&state->values);
++		if (res < 0)
++			ereport(ERROR,
++					(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
++					 errmsg("%s", px_strerror(res))));
++
++		MemoryContextSwitchTo(oldcontext);
++		funcctx->user_fctx = state;
++	}
++
++	funcctx = SRF_PERCALL_SETUP();
++	state = (pgp_armor_headers_state *) funcctx->user_fctx;
++
++	if (funcctx->call_cntr >= state->nheaders)
++		SRF_RETURN_DONE(funcctx);
 +	else
 +	{
-+		/* assume it's UTF-8 */
-+		char *utf;
-+		text *result;
++		char	  *values[2];
 +
-+		utf = pg_any_to_server(buf, buflen, PG_UTF8);
-+		result = cstring_to_text(utf);
-+		PG_RETURN_TEXT_P(result);
++		/* we assume that the keys (and values) are in UTF-8. */
++		utf8key = state->keys[funcctx->call_cntr];
++		utf8val = state->values[funcctx->call_cntr];
++
++		values[0] = pg_any_to_server(utf8key, strlen(utf8key), PG_UTF8);
++		values[1] = pg_any_to_server(utf8val, strlen(utf8val), PG_UTF8);
++
++		/* build a tuple */
++		tuple = BuildTupleFromCStrings(funcctx->attinmeta, values);
++		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
 +	}
 +}
 +
@@ -634,129 +917,134 @@ index d4eec03..fe4d20b 100644
   * Wrappers for PGP key id
   */
 diff --git a/pgp.h b/pgp.h
-index 3022abf..b9574fa 100644
+index 3022abf..7ad9d70 100644
 --- a/pgp.h
 +++ b/pgp.h
-@@ -271,9 +271,13 @@ void		pgp_cfb_free(PGP_CFB *ctx);
+@@ -29,6 +29,11 @@
+  * contrib/pgcrypto/pgp.h
+  */
+ 
++#include "lib/stringinfo.h"
++
++#include "mbuf.h"
++#include "px.h"
++
+ enum PGP_S2K_TYPE
+ {
+ 	PGP_S2K_SIMPLE = 0,
+@@ -271,10 +276,11 @@ void		pgp_cfb_free(PGP_CFB *ctx);
  int			pgp_cfb_encrypt(PGP_CFB *ctx, const uint8 *data, int len, uint8 *dst);
  int			pgp_cfb_decrypt(PGP_CFB *ctx, const uint8 *data, int len, uint8 *dst);
  
 -int			pgp_armor_encode(const uint8 *src, unsigned len, uint8 *dst);
-+int			pgp_armor_encode(const uint8 *src, unsigned len, uint8 *dst,
-+							 int num_headers, char **keys, char **values);
- int			pgp_armor_decode(const uint8 *src, unsigned len, uint8 *dst);
+-int			pgp_armor_decode(const uint8 *src, unsigned len, uint8 *dst);
 -unsigned	pgp_armor_enc_len(unsigned len);
-+int			pgp_armor_header(const uint8 *src, unsigned len,
-+							 const char *key, unsigned key_len,
-+							 uint8 **dst, int *out_len);
-+unsigned	pgp_armor_enc_len(unsigned len, int num_headers, char **keys, char **values);
- unsigned	pgp_armor_dec_len(unsigned len);
+-unsigned	pgp_armor_dec_len(unsigned len);
++void		pgp_armor_encode(const uint8 *src, unsigned len, StringInfo dst,
++							 int num_headers, char **keys, char **values);
++int			pgp_armor_decode(const uint8 *src, int len, StringInfo dst);
++int			pgp_extract_armor_headers(const uint8 *src, unsigned len,
++									  int *nheaders, char ***keys, char ***values);
  
  int			pgp_compress_filter(PushFilter **res, PGP_Context *ctx, PushFilter *dst);
+ int			pgp_decompress_filter(PullFilter **res, PGP_Context *ctx, PullFilter *src);
 diff --git a/sql/pgp-armor.sql b/sql/pgp-armor.sql
-index 71ffba2..e62f024 100644
+index 71ffba2..ae4fbad 100644
 --- a/sql/pgp-armor.sql
 +++ b/sql/pgp-armor.sql
-@@ -56,3 +56,161 @@ em9va2E=
+@@ -56,3 +56,197 @@ em9va2E=
  =ZZZZ
  -----END PGP MESSAGE-----
  ');
 +
-+-- corrupt
-+select pgp_armor_header('
++-- corrupt (no space after the colon)
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +foo:
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'foo');
++');
 +
-+-- empty
-+select pgp_armor_header('
++-- corrupt (no empty line)
++select * from pgp_armor_headers('
++-----BEGIN PGP MESSAGE-----
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++');
++
++-- no headers
++select * from pgp_armor_headers('
++-----BEGIN PGP MESSAGE-----
++
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++');
++
++-- header with empty value
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +foo: 
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'foo');
++');
 +
 +-- simple
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
-+foo: bar
++fookey: foovalue
++barkey: barvalue
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'foo');
-+
-+-- uninteresting keys, part 1
-+select pgp_armor_header('
-+-----BEGIN PGP MESSAGE-----
-+foo: found
-+bar: ignored
-+
-+em9va2E=
-+=ZZZZ
-+-----END PGP MESSAGE-----
-+', 'foo');
-+
-+-- uninteresting keys, part 2
-+select pgp_armor_header('
-+-----BEGIN PGP MESSAGE-----
-+bar: ignored
-+foo: found
-+
-+em9va2E=
-+=ZZZZ
-+-----END PGP MESSAGE-----
-+', 'foo');
-+
-+-- uninteresting keys, part 3
-+select pgp_armor_header('
-+-----BEGIN PGP MESSAGE-----
-+bar: ignored
-+foo: found
-+bar: ignored
-+
-+em9va2E=
-+=ZZZZ
-+-----END PGP MESSAGE-----
-+', 'foo');
++');
 +
 +-- insane keys, part 1
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +insane:key : 
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'insane:key ');
++');
 +
 +-- insane keys, part 2
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +insane:key : text value here
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'insane:key ');
++');
 +
 +-- long value
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +long: this value is more than 76 characters long, but it should still parse correctly as that''s permitted by RFC 4880
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
-+', 'long');
++');
 +
 +-- long value, split up
++select * from pgp_armor_headers('
++-----BEGIN PGP MESSAGE-----
++long: this value is more than 76 characters long, but it should still 
++long: parse correctly as that''s permitted by RFC 4880
++
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++');
 +select pgp_armor_header('
 +-----BEGIN PGP MESSAGE-----
 +long: this value is more than 76 characters long, but it should still 
@@ -767,8 +1055,19 @@ index 71ffba2..e62f024 100644
 +-----END PGP MESSAGE-----
 +', 'long');
 +
++
 +-- long value, split up, part 2
-+select pgp_armor_header('
++select * from pgp_armor_headers('
++-----BEGIN PGP MESSAGE-----
++long: this value is more than 
++long: 76 characters long, but it should still 
++long: parse correctly as that''s permitted by RFC 4880
++
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++');
++select * from pgp_armor_header('
 +-----BEGIN PGP MESSAGE-----
 +long: this value is more than 
 +long: 76 characters long, but it should still 
@@ -778,24 +1077,40 @@ index 71ffba2..e62f024 100644
 +=ZZZZ
 +-----END PGP MESSAGE-----
 +', 'long');
++
 +
 +-- long value, split up, part 3
-+select pgp_armor_header('
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
-+ignored: 
++emptykey: 
 +long: this value is more than 
-+ignored: 
++emptykey: 
 +long: 76 characters long, but it should still 
-+ignored: 
++emptykey: 
 +long: parse correctly as that''s permitted by RFC 4880
-+ignored: 
++emptykey: 
++
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++');
++select * from pgp_armor_header('
++-----BEGIN PGP MESSAGE-----
++emptykey: 
++long: this value is more than 
++emptykey: 
++long: 76 characters long, but it should still 
++emptykey: 
++long: parse correctly as that''s permitted by RFC 4880
++emptykey: 
 +
 +em9va2E=
 +=ZZZZ
 +-----END PGP MESSAGE-----
 +', 'long');
 +
-+select pgp_armor_header('
++
++select * from pgp_armor_headers('
 +-----BEGIN PGP MESSAGE-----
 +Comment: dat1.blowfish.sha1.mdc.s2k3.z0
 +
@@ -803,12 +1118,25 @@ index 71ffba2..e62f024 100644
 +yA6Ce1QTMK3KdL2MPfamsTUSAML8huCJMwYQFfE=
 +=JcP+
 +-----END PGP MESSAGE-----
-+', 'Comment');
++');
++
++-- test CR+LF line endings
++select * from pgp_armor_headers(replace('
++-----BEGIN PGP MESSAGE-----
++fookey: foovalue
++barkey: barvalue
++
++em9va2E=
++=ZZZZ
++-----END PGP MESSAGE-----
++', E'\n', E'\r\n'));
 +
 +-- test header generation
 +select armor('zooka', array['foo'], array['bar']);
-+select armor('zooka', array['Version', 'Comment'], array['Created by pgcrypto', 'PostgreSQL, the world''s most most advanced open source database']);
-+select pgp_armor_header(armor('zooka', array['Version', 'Comment'], array['Created by pgcrypto', 'PostgreSQL, the world''s most most advanced open source database']), 'Comment');
++select armor('zooka', array['Version', 'Comment'], array['Created by pgcrypto', 'PostgreSQL, the world''s most advanced open source database']);
++select * from pgp_armor_headers(
++  armor('zooka', array['Version', 'Comment'],
++                 array['Created by pgcrypto', 'PostgreSQL, the world''s most advanced open source database']));
 +
 +-- error/corner cases
 +select armor('', array['foo'], array['too', 'many']);
@@ -819,3 +1147,6 @@ index 71ffba2..e62f024 100644
 +select armor('', array['foo'], array[null]);
 +select armor('', '[0:0]={"foo"}', array['foo']);
 +select armor('', array['foo'], '[0:0]={"foo"}');
++select armor('', array[E'embedded\nnewline'], array['foo']);
++select armor('', array['foo'], array[E'embedded\nnewline']);
++select armor('', array['embedded: colon+space'], array['foo']);

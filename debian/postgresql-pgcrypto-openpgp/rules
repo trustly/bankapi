@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-VERSION=1.2-1
+VERSION=1.3-1
 PGMINORVERSION=$$(pg_config --version | sed 's/.* //')
 PGVERSION=$$(echo "$(PGMINORVERSION)" | cut -f1-2 -d.)
 PGMAJORVERSION=$$(echo "$(PGVERSION)" | cut -f1 -d.)
